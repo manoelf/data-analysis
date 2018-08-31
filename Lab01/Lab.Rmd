@@ -1,0 +1,47 @@
+---
+title: "Deputies Expenditures Analysis: Our Questions"
+output: html_notebook
+---
+
+#TODO Here I gonna talk about the datas 
+Link about it: http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar 
+
+For this lab we gonna need the following package to be installed
+```{r}
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("tidyverse")
+```
+
+Loading the libraries
+```{r}
+ library(ggplot2)
+ library(dplyr)
+ library(tidyr)
+ library(tidyverse)
+
+```
+
+Set up the workspace folder
+
+```{r}
+setwd("~/git/data-analysis/Lab01")
+```
+
+Loading the data
+
+```{r}
+dados <- read_csv(("data/dadosCEAP.csv"))
+```
+
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
