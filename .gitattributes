@@ -1,2 +1,4 @@
 .csv filter=lfs diff=lfs merge=lfs -text
+Lab01/data/dadosCEAP.csv filter=lfs diff=lfs merge=lfs -text
+.psd filter=lfs diff=lfs merge=lfs -text
 *.csv filter=lfs diff=lfs merge=lfs -text
