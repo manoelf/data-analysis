@@ -23,6 +23,7 @@ Loading the libraries
  library(tidyr)
  library(tidyverse)
  library(scales)
+ library(plotly)
 
 ```
 
@@ -35,18 +36,17 @@ setwd("~/git/data-analysis/Lab01")
 Loading the data
 
 ```{r}
-data <- read_csv(("/home/josemsf/Downloads/dadosCEAP.csv"))
-```
-
-
-```{r}
+data <- read_csv(("data/dadosCEAP.csv"))
+montly_limit <- read_csv(("data/limiteMensalCEAP.csv"))
 data$valorGlosa <- as.numeric(sub(",", ".", data$valorGlosa, fixed = TRUE)) 
+data %>% 
+  full_join(montly_limit, by=c("sgUF" = "UF")) -> data
 ```
 
 Quais são os deputados que gastaram mais dinheiro da CEAP? Quais são os mais econômicos? (7,5 pts)
 
 ```{r}
-#Need to fix that shit. Must sort by the dep_expenses before to filter
+
 greater_expenses <- data %>% 
   group_by(nomeParlamentar) %>%
   filter(valorLíquido >= 0) %>%
@@ -110,6 +110,14 @@ ggplot(expense_by_group, aes(y = expense, x = reorder(sgPartido, expense))) + or
 Quais os deputados que mais ultrapassam o limite de CEAP do seu estado? Os dados com os limites de CEAP por estado estão disponíveis neste link. (7,5 pts)
 
 ```{r}
+
+limit_exceeded <- data %>%
+  mutate(ano =  substr(dataEmissao, 1, 4)) %>%
+  mutate(mes =  substr(dataEmissao, 6, 7)) %>%
+  group_by(nomeParlamentar, limite_mensal, mes, ano) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido)) %>%
+  filter(expense > limite_mensal)
 
 ```
 
