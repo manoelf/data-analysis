@@ -34,28 +34,98 @@ setwd("~/git/data-analysis/Lab01")
 Loading the data
 
 ```{r}
-dados <- read_csv(("data/dadosCEAP.csv"))
+data <- read_csv(("data/dadosCEAP.csv"))
 ```
 
 
 ```{r}
-dados$valorGlosa <- as.numeric(sub(",", ".", dadosCEAP$valorGlosa, fixed = TRUE)) 
+data$valorGlosa <- as.numeric(sub(",", ".", data$valorGlosa, fixed = TRUE)) 
 ```
 
+Quais são os deputados que gastaram mais dinheiro da CEAP? Quais são os mais econômicos? (7,5 pts)
 
 ```{r}
 #Need to fix that shit. Must sort by the dep_expenses before to filter
-greater_expenses <- dados %>% 
+greater_expenses <- data %>% 
   group_by(nomeParlamentar) %>%
   summarise(dep_expenses = sum(valorLíquido))
 
-
+greater_expenses <- greater_expenses[order(greater_expenses$dep_expenses),]
 
 filter_expensies <- rbind(head(greater_expenses, 10), tail(greater_expenses, 10))
 ggplot(filter_expensies, aes(y = dep_expenses, x = reorder(nomeParlamentar, dep_expenses)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
   geom_bar(stat="identity") +
   labs(title = "Deputies Expenses",
        x = "Deputies", y = "Expenses in R$") +
+  coord_flip() 
+```
+
+
+Quais os estados cujos deputados gastam mais no exterior? Quais os estados cujos deputados gastam menos no exterior? (7,5 pts)
+
+```{r}
+expending_abord <- data %>%
+  group_by(sgUF, tipoDocumento = 2) %>%
+  summarise(expense = sum(valorLíquido))
+
+#expending_abord$id <- seq.int(nrow(expending_abord))
+
+expending_abord <- expending_abord[order(expending_abord$expense),]
+
+expending_abord$sgUF <- factor(expending_abord$sgUF, levels = expending_abord$sgUF[order(expending_abord$expense)])
+ggplot(expending_abord, aes(x = sgUF, y = expense)) + theme_bw() + geom_bar(stat = "identity") + scale_y_continuous(labels = comma)
+
+```
+
+Quais os partidos cujos parlamentares mais usam CEAP no estado da Paraíba? Quais são os que menos usam? Mesmas perguntas considerando valores em R$. (7,5 pts)
+
+```{r}
+expense_by_group <- data %>%
+  group_by(sgUF = "PB", sgPartido) %>%
+  summarise(expense = sum(abs(valorLíquido)))
+
+expense_by_group$sgUF <- factor(expense_by_group$sgPartido, levels = expense_by_group$sgPartido[order(expense_by_group$expense)])
+ggplot(expense_by_group, aes(y = expense, x = reorder(sgPartido, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "Grups Expenses",
+       x = "Grups", y = "Expenses in R$") +
+  coord_flip() 
+```
+
+
+Quais os deputados que mais ultrapassam o limite de CEAP do seu estado? Os dados com os limites de CEAP por estado estão disponíveis neste link. (7,5 pts)
+
+```{r}
+
+```
+
+
+Quais estados cujos parlamentares gastam mais com passagens aéreas? (7,5 pts)
+
+```{r}
+flyies_expenses <- data %>%
+  group_by(sgUF, tipoDespesa = "Emissão Bilhete Aéreo") %>%
+  summarise(expense = sum(abs(valorLíquido)))
+
+flyies_expenses$sgUF <- factor(flyies_expenses$sgUF, levels = flyies_expenses$sgUF[order(flyies_expenses$expense)])
+ggplot(flyies_expenses, aes(x = sgUF, y = expense)) + theme_bw() + geom_bar(stat = "identity") + scale_y_continuous(labels = comma)
+```
+
+
+Escolha três partidos e responda: Quais são os tipos de despesa mais utilizados no uso da CEAP pelos deputados desses partidos? Mesma pergunta considerando valores em R$. (7,5 pts)
+Gonna chose PMDB, PT and DEM
+
+```{r}
+expense_most_required <- data %>%
+  group_by(tipoDespesa, sgPartido = "PMDB") %>%
+  summarise(expense = sum(abs(valorLíquido)))
+
+expense_most_required$tipoDespesa <- factor(expense_most_required$tipoDespesa, levels = expense_most_required$tipoDespesa[order(expense_most_required$expense)])
+
+ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "Grups Expenses",
+       x = "Grups", y = "Expenses in R$") +
   coord_flip() 
 ```
 
