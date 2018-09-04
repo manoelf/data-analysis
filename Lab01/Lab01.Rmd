@@ -11,7 +11,6 @@ For this lab we gonna need the following package to be installed
 install.packages("ggplot2")
 install.packages("dplyr")
 install.packages("tidyr")
-install.packages("tidyverse")
 install.packages("scales")
 install.packages("plotly")
 ```
@@ -21,7 +20,6 @@ Loading the libraries
  library(ggplot2)
  library(dplyr)
  library(tidyr)
- library(tidyverse)
  library(scales)
  library(plotly)
 
@@ -36,8 +34,8 @@ setwd("~/git/data-analysis/Lab01")
 Loading the data
 
 ```{r}
-data <- read_csv(("data/dadosCEAP.csv"))
-montly_limit <- read_csv(("data/limiteMensalCEAP.csv"))
+data <- read.csv(("/home/josemsf/Downloads/dadosCEAP.csv"))
+montly_limit <- read.csv(("/home/josemsf/Downloads/limiteMensalCEAP.csv"))
 data$valorGlosa <- as.numeric(sub(",", ".", data$valorGlosa, fixed = TRUE)) 
 data %>% 
   full_join(montly_limit, by=c("sgUF" = "UF")) -> data
@@ -81,7 +79,7 @@ ggplot(filter_expensies, aes(y = dep_expenses, x = reorder(nomeParlamentar, dep_
 filter_expensies_minors <- rbind(head(greater_expenses, 10))
 ggplot(filter_expensies_minors, aes(y = dep_expenses, x = reorder(nomeParlamentar, dep_expenses)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
   geom_bar(stat="identity") +
-  labs(title = "The Deputies That Have Expeended Less Money",
+  labs(title = "The Deputies That Have Expended Less Money",
        x = "Deputies", y = "Expenses in R$") +
   coord_flip() 
 ```
@@ -103,8 +101,6 @@ expending_abord <- data %>%
   group_by(sgUF) %>%
   filter(tipoDocumento == 2, valorLíquido >= 0) %>%
   summarise(expense = sum(valorLíquido))
-
-#expending_abord$id <- seq.int(nrow(expending_abord))
 
 expending_abord <- expending_abord[order(expending_abord$expense),]
 
@@ -177,6 +173,7 @@ limit_exceeded %>%
 ###Which are the states whit more expense in airline tickets?
 
 We are going to look only to expenses whit the description about airline tickes, once whit that information we will sum all values by states.
+
 ```{r}
 flyies_expenses <- data %>%
   group_by(sgUF) %>%
@@ -209,11 +206,11 @@ ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense)
        x = "Grups", y = "Expenses in R$") +
   coord_flip() 
 
+ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_bar(stat="identity") +
+  labs(title = "Expenses by the groups PMDB, PT and DEM",
+       y = "Expenses in R$", x = "Type of expenses") +
+  coord_flip() 
 
-expense_most_required %>%
-  plot_ly(y= ~reorder(tipoDespesa, expense), x= ~expense, type= "scatter", mode="markers", color = ~tipoDespesa) %>%
-  layout(title = "Expenses by the groups PMDB, PT and DEM",
-         yaxis = list(title = "Expenses"),
-         xaxis = list (title = "Total expendes in R$"))
 ```
 12 diferentes types of expenses and as far we can see the most expensice is airline tickets whit R$ 47353189.62 and very near we got deputies activities publicities whit R$ 40119480.33.
