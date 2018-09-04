@@ -1,7 +1,9 @@
 ---
-title: "Deputies Expenditures Analysis: Our Questions"
-output: html_notebook
-author: "José Manoel Ferreira"S
+title: 'Deputies Expenditures Analysis: Our Questions'
+author: "José Manoel Ferreira"
+output:
+  html_document:
+    df_print: paged
 ---
 
 Link about it: http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar 
