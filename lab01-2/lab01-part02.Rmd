@@ -1,0 +1,116 @@
+---
+title: "Deputies Expenditure Analysis: My Questions"
+author: "Jose Manoel Ferreira"
+output: html_notebook
+
+---
+
+#Introduction
+
+<p>
+  The present work is a continuation of https://rpubs.com/manoelf/416750
+  Here we are going to create new questions and answer it through the data analysis. The data about deputies expenses is located right here https://canvas.instructure.com/courses/1402758/files/67618888/download?verifier=ibyou5PYo9aaFgRaefc0keYkHhkQ2EqIArdmI1bq&wrap=1 and more informations about you can find in  http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar
+</p>
+
+/TODO: Should talk here about the data, what does mean the variables and so on.
+
+#Set Up
+
+For our analisys we need the folowing packages to be installed.
+
+```{r}
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("scales")
+#install.packages("plotly")
+```
+
+Once packages installed we load it.
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+library(plotly)
+```
+
+Setting up the workspace.
+
+```{r}
+setwd("~/git/data-analysis/lab01-2/")
+```
+
+Now we gonna load the main data, which is about the deputies expenses.
+
+```{r}
+data <- read.csv(("/home/josemsf/Downloads/dadosCEAP.csv"))
+```
+
+## It is important to know how much money is expende along the months, for that reason we will se it through the graphic.
+
+First we need to create two new column which represents the year of the expense and its month
+
+```{r}
+expenses_by_month <- data %>%
+  mutate(year = substr(dataEmissao, 1, 4)) %>%
+  mutate(month = substr(dataEmissao, 6, 7))
+  
+```
+
+Once the column are created we will agroup and sum all values expend in each month.
+
+```{r}
+expenses_by_month <- expenses_by_month %>%
+  group_by(year, month) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+```
+
+Lets see the expense in a graphic.
+
+
+```{r}
+expenses_by_month %>%
+   plot_ly(x= ~month, y= ~expense,type= "scatter", mode= "lines+markers") %>%
+  layout(title="Expenses by months", 
+         xaxis=list(title="Months", range= c(0,10)), 
+         yaxis=list(title="Value Expended in RS"), barmode="stack")
+
+plot(expenses_by_month, year~month , type="month" , bty="l" , xlab="value of a" , ylab="value of b" , col=rgb(0.2,0.4,0.1,0.7) , lwd=3 , pch=17 , ylim=c(1,5) )
+lines(expense ~month , col=rgb(0.8,0.4,0.1,0.7) , lwd=3 , pch=19 , type="month" )
+ 
+
+```
+```{r}
+expenses_by_month %>% na.omit() %>% 
+ggplot(aes(x = month, y = expense, color=year, group = year)) +
+  scale_y_continuous(labels = comma) +
+  geom_point() +
+  geom_line()
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
