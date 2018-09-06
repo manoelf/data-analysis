@@ -203,17 +203,17 @@ expense_most_required <- data %>%
 
 expense_most_required$tipoDespesa <- factor(expense_most_required$tipoDespesa, levels = expense_most_required$tipoDespesa[order(expense_most_required$expense)])
 
-ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
-  geom_bar(stat="identity") +
-  labs(title = "Grups Expenses",
-       x = "Grups", y = "Expenses in R$") +
-  coord_flip() 
+#ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+#  geom_bar(stat="identity") +
+#  labs(title = "Grups Expenses",
+#       x = "Grups", y = "Expenses in R$") +
+#  coord_flip() 
 
 
-expense_most_required %>%
-  plot_ly(y= ~reorder(tipoDespesa, expense), x= ~expense, type= "scatter", mode="markers", color = ~tipoDespesa) %>%
-  layout(title = "Expenses by the groups PMDB, PT and DEM",
-         yaxis = list(title = "Expenses"),
-         xaxis = list (title = "Total expendes in R$"))
+#expense_most_required %>%
+#  plot_ly(y= ~reorder(tipoDespesa, expense), x= ~expense, type= "scatter", mode="markers", color = ~tipoDespesa) %>%
+#  layout(title = "Expenses by the groups PMDB, PT and DEM",
+#         yaxis = list(title = "Expenses"),
+#         xaxis = list (title = "Total expendes in R$"))
 ```
 12 diferentes types of expenses and as far we can see the most expensice is airline tickets whit R$ 47353189.62 and very near we got deputies activities publicities whit R$ 40119480.33.
