@@ -1,0 +1,227 @@
+---
+title: 'Deputies Expenditures Analysis: Our Questions'
+author: "José Manoel Ferreira"
+output:
+  html_document:
+    df_print: paged
+---
+
+Link about it: http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar 
+
+For this lab we gonna need the following package to be installed
+```{r}
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("scales")
+#install.packages("plotly")
+```
+
+Loading the libraries
+```{r}
+ library(ggplot2)
+ library(dplyr)
+ library(tidyr)
+ library(scales)
+ library(plotly)
+
+```
+
+Set up the workspace folder
+
+```{r}
+setwd("~/git/data-analysis/Lab01")
+```
+
+Loading the data
+
+```{r}
+data <- read.csv(("/home/josemsf/Downloads/dadosCEAP.csv"))
+montly_limit <- read.csv(("/home/josemsf/Downloads/limiteMensalCEAP.csv"))
+data$valorGlosa <- as.numeric(sub(",", ".", data$valorGlosa, fixed = TRUE)) 
+data %>% 
+  full_join(montly_limit, by=c("sgUF" = "UF")) -> data
+```
+
+###Which deputies have expeended more money from CEAP? Which are the most economic?
+
+<p>Here we have two graphics that show the top 10 deputies that have expeended more money and the top 10 more economic.</p>
+
+```{r}
+
+greater_expenses <- data %>% 
+  group_by(nomeParlamentar) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(dep_expenses = sum(valorLíquido))
+
+greater_expenses <- greater_expenses[order(greater_expenses$dep_expenses),]
+
+filter_expensies <- rbind(tail(greater_expenses, 10))
+ggplot(filter_expensies, aes(y = dep_expenses, x = reorder(nomeParlamentar, dep_expenses)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "The Deputies That Have Expeended More Money",
+       x = "Deputies", y = "Expenses in RS") +
+  coord_flip() 
+
+
+```
+
+<p>Here we can see 10 deputies that have expeend more money which are:</p>
+
+<ul>
+  <li>Edio Lopes: RS 1648666 </li>
+  <li>Rocha: RS 1526395</li>
+  <li>Abel Mesquita Junior: RS 1470778</li>
+  <li>Alan Rick: RS 1464612</li>
+  <li>Jhonatan de Jesus: RS 1463513</li>
+</ul>
+
+
+```{r}
+filter_expensies_minors <- rbind(head(greater_expenses, 10))
+ggplot(filter_expensies_minors, aes(y = dep_expenses, x = reorder(nomeParlamentar, dep_expenses)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "The Deputies That Have Expended Less Money",
+       x = "Deputies", y = "Expenses in RS") +
+  coord_flip() 
+```
+<p>Now those are the ones who have expeended less money:</p>
+
+<ul>
+  <li>Camilo Cola: RS 0.62 </li>
+  <li>Eliseu Padilha: RS 5.31</li>
+  <li>Marcio Monteiro: RS 14.18</li>
+  <li>Marcelo Almeida: RS 26.16</li>
+  <li>Renan Filho: RS 35.51</li>
+</ul>
+
+
+###Which are the states that its deputies have more expenses abroad? Which are the states that its deputies have expended less abroad?
+
+```{r}
+expending_abord <- data %>%
+  group_by(sgUF) %>%
+  filter(tipoDocumento == 2, valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+
+expending_abord <- expending_abord[order(expending_abord$expense),]
+
+expending_abord$sgUF <- factor(expending_abord$sgUF, levels = expending_abord$sgUF[order(expending_abord$expense)])
+ggplot(expending_abord, aes(x = sgUF, y = expense)) + theme_bw() + geom_bar(stat = "identity") + 
+  scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "The Deputies That Have Expeended Less Money Abroad",
+       x = "Deputies", y = "Expenses in RS") +
+  coord_flip() 
+
+```
+As we can see the hilight is São Paulo which have been the most expenses to abroad whit RS 102366.56 followed by Minas Gerais whit RS 79767.77
+and Pernambuco whit RS 70915.94. And alse we hilight Maranhão that have been expended only RS 40.99 and Paraíba whit RS 2288.29..
+
+###Which are the political groups that its deputies most use CEAP in the state of Paraíba? Which are the less use it?
+
+
+```{r}
+expense_by_group <- data %>%
+  group_by(sgPartido) %>%
+  filter(valorLíquido >= 0, sgUF == "PB") %>%
+  summarise(expense = sum(abs(valorLíquido)))
+
+expense_by_group$sgUF <- factor(expense_by_group$sgPartido, levels = expense_by_group$sgPartido[order(expense_by_group$expense)])
+ggplot(expense_by_group, aes(y = expense, x = reorder(sgPartido, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+  geom_bar(stat="identity") +
+  labs(title = "Grups Expenses",
+       x = "Grups", y = "Expenses in RS") +
+  coord_flip() 
+```
+<p>PMDB is the group that most uses CEP whit a value of RS 4011621.34 followed by PR whit RS 1434506.56</p>
+
+ 
+###Which are the deputies, by state, that most pass the CEAP limit??
+
+```{r}
+
+limit_exceeded <- data %>%
+  mutate(ano =  substr(dataEmissao, 1, 4)) %>%
+  mutate(mes =  substr(dataEmissao, 6, 7)) %>%
+  group_by(nomeParlamentar, limite_mensal, mes, ano) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido)) %>%
+  filter(expense > limite_mensal)
+
+limit_exceeded <- limit_exceeded %>%
+  group_by(nomeParlamentar) %>%
+  summarise(times_exceeded = n())
+
+limit_exceeded <- limit_exceeded[order(limit_exceeded$times_exceeded, decreasing = TRUE),]
+limit_exceeded$indexGasto <- factor(limit_exceeded$nomeParlamentar, levels = limit_exceeded$nomeParlamentar)
+
+limit_exceeded %>%
+  plot_ly(x= ~indexGasto, y= ~times_exceeded,type= "scatter", mode= "lines+markers") %>%
+  layout(title="Number of time the deputies have exceeded the monthly limit of expenses", 
+         xaxis=list(title="Deputies", range= c(0,10)), 
+         yaxis=list(title="Times of limit exceeded"), barmode="stack")
+```
+<p>Our data show that at least one deputie have passed his state CEAP limit, but ther are some most frequent, which are:</p>
+<ul>
+  <li>Felipe Bornier </li>
+  <li>Domingos Neto</li>
+  <li>Jandira Feghali</li>
+  <li>Paulo Abi-Ackel</li>
+  <li>Rômulo Goveia</li>
+</ul>
+
+
+###Which are the states whit more expense in airline tickets?
+
+We are going to look only to expenses whit the description about airline tickes, once whit that information we will sum all values by states.
+
+```{r}
+flyies_expenses <- data %>%
+  group_by(sgUF) %>%
+  filter(tipoDespesa == "Emissão Bilhete Aéreo", valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+
+flyies_expenses$sgUF <- factor(flyies_expenses$sgUF, levels = flyies_expenses$sgUF[order(flyies_expenses$expense)])
+ggplot(flyies_expenses, aes(x = sgUF, y = expense)) + theme_bw() + geom_bar(stat = "identity") + scale_y_continuous(labels = comma) +
+  labs(title = "State whit its epenses whit airline tickets",
+       x = "Value in RS", y = "State")
+```
+
+So what we've got it São Paulo is the state that expend more money then the other whit ailine ticket, and the total expeended was about RS 23171817.73 and Rio de Janeiro whit RS16755188.64
+
+###Chose three groups and answer: which are the most used expenses in CEAP by the deputies form those groups?
+
+Gonna chose PMDB, PT and DEM and take a close look in its expenses.
+
+```{r}
+expense_most_required <- data %>%
+  group_by(tipoDespesa) %>%
+  filter(sgPartido %in% c("PMDB", "PT", "DEM"), valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+
+expense_most_required$tipoDespesa <- factor(expense_most_required$tipoDespesa, levels = expense_most_required$tipoDespesa[order(expense_most_required$expense)])
+
+<<<<<<< HEAD:Lab01/Lab01.Rmd
+#ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense))) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) +
+#  geom_bar(stat="identity") +
+#  labs(title = "Grups Expenses",
+#       x = "Grups", y = "Expenses in R$") +
+#  coord_flip() 
+
+
+#expense_most_required %>%
+#  plot_ly(y= ~reorder(tipoDespesa, expense), x= ~expense, type= "scatter", mode="markers", color = ~tipoDespesa) %>%
+#  layout(title = "Expenses by the groups PMDB, PT and DEM",
+#         yaxis = list(title = "Expenses"),
+#         xaxis = list (title = "Total expendes in R$"))
+=======
+ggplot(expense_most_required, aes(y = expense, x = reorder(tipoDespesa, expense)), top_n(x, 10)) + order(decreasing = TRUE) + scale_y_continuous(labels = comma) + theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_bar(stat="identity") +
+  labs(title = "Expenses by the groups PMDB, PT and DEM",
+       y = "Expenses in RS", x = "Type of expenses") +
+  coord_flip() 
+
+>>>>>>> 6aacc11e4352f9fb0c32bad51edebbc049b0f3d2:Lab01/lab.Rmd
+```
+12 diferentes types of expenses and as far we can see the most expensice is airline tickets whit RS 47353189.62 and very near we got deputies activities publicities whit RS 40119480.33.
