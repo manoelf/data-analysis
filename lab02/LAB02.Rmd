@@ -39,6 +39,39 @@ setwd("~/git/data-analysis/lab01-2/")
 
 
 
-data2006 <- read.csv(("data/dadosCEAP.csv"))
+data2006 <- read.csv(("data/eleicoes_2006.csv"))
+data2010 <- read.csv(("data/eleicoes_2010.csv"))
+
+
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(lattice)
+library(scales)
 ```
 
+
+```{r hist,warning=FALSE, message=FALSE}
+d = melt(select(data2006, -sequencial_candidato))
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable, scales = "free_x") + 
+    scale_x_continuous(labels = comma) +
+    geom_histogram()
+```
+
+
+```{r hist,warning=FALSE, message=FALSE}
+data2006$sexo = as.factor(data2006$sexo)
+data2006$estado_civil = as.factor(data2006$estado_civil)
+```
+
+
+
+
+```{r hist,warning=FALSE, message=FALSE}
+data2006$quantidades_doacoes = log(data2006$quantidade_doacoes)
+data2006$quantidade_doadores = log(data2006$quantidade_doadores)
+data2006$quantidade_despesas = log(data2006$quantidade_despesas)
+
+```
