@@ -1,0 +1,153 @@
+---
+title: 'Deputies Expenditure Analysis: My Questions'
+author: "Jose Manoel Ferreira"
+output:
+  html_document:
+    df_print: paged
+---
+
+#Deputies Expenditure Analysis: My Questions
+
+
+##Introduction
+
+ <p> The present work is a continuation of https://rpubs.com/manoelf/416750<p>
+  
+ <p> Here we are going to create new questions and answer it through the data analysis. The data about deputies expenses is located right  <a href="https://canvas.instructure.com/courses/1402758/files/67618888/download?verifier=ibyou5PYo9aaFgRaefc0keYkHhkQ2EqIArdmI1bq&wrap=1">here</a> and more informations about you can find in <a href="http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar"> government website</a>
+</p>
+
+
+
+####Set Up
+
+<p>For our analisys we need the folowing packages to be installed.</p>
+
+```{r}
+#install.packages("ggplot2")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("scales")
+#install.packages("plotly")
+```
+
+<p>Once packages installed we load it.</p>
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+library(plotly)
+```
+
+<p>Setting up the workspace.</p>
+
+```{r}
+setwd("~/git/data-analysis/lab01-2/")
+```
+
+<p>Now we gonna load the main data, which is about the deputies expenses.</p>
+
+```{r}
+data <- read.csv(("data/dadosCEAP.csv"))
+```
+
+### It is important to know how much money is expende along the months, for that reason we will se it through the graphic.
+
+<p>First we need to create two new column which represents the year of the expense and its month.</p>
+
+```{r}
+expenses_by_month <- data %>%
+  mutate(year = substr(dataEmissao, 1, 4)) %>%
+  mutate(month = substr(dataEmissao, 6, 7))
+  
+```
+
+<p>Once the column are created we will agroup and sum all values expend in each month.</p>
+
+```{r}
+expenses_by_month <- expenses_by_month %>%
+  group_by(year, month) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+```
+
+<p>Lets see the expense in a graphic.</p>
+
+
+
+```{r}
+expenses_by_month %>% na.omit() %>% 
+ggplot(aes(x = month, y = expense, color=year, group = year)) +
+  scale_y_continuous(labels = comma) +
+  geom_point() +
+  geom_line()
+  
+```
+
+
+<p>There is data from four year but those referent 2014 shoud be ignored because it's not complete, also 2017 the data was got until the month 08.
+Here we can find some interesting informations, for example the month 01 and 12 still located the minimum and maximum values of expense, the value expended in the months are close, except to month 02 which in the year 2015 is considerating lower then 2016 and 2017.</p>
+
+
+### What about the average of money expended by the deputies in thir groups?
+
+<p>
+  In order to know the answer to that question, we should know how many deputies have by grups. So we gonna count the deputies by grouping the grups sigle and the depuite name.
+</p>
+
+
+
+
+```{r}
+media_expense <- data %>%
+  group_by(nomeParlamentar, sgPartido) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+
+total_deputies_by_group <- media_expense %>%
+  group_by(sgPartido) %>% 
+  summarise(total_deputies = n())
+
+arrange(total_deputies_by_group, total_deputies)
+
+
+
+```
+<p> Now we need to know how much money each group have expended. We know it by gruping all grups and doing a sum of all expenses. Then we got it: </p>
+
+```{r}
+expense_by_group <- data %>%
+  group_by(sgPartido) %>%
+  filter(valorLíquido >= 0) %>%
+  summarise(expense = sum(valorLíquido))
+
+expense_by_group
+```
+
+<p>Now we put all together and do the average by dividing the group expenses by its total of deputies. Once we have it done, lets see a bar graphic whit that information.</p>
+
+
+```{r}
+expense_by_group %>% full_join(total_deputies_by_group, by=c("sgPartido" = "sgPartido")) -> new_data
+
+new_data <- new_data %>% na.omit() %>%  mutate(media_expense_by_deputies = expense/total_deputies)
+new_data
+
+
+new_data %>% arrange(media_expense_by_deputies) %>% ggplot( aes(x=sgPartido, y=media_expense_by_deputies)) + 
+ geom_bar(stat="identity",  fill="tomato3") + 
+  labs(title="Average Expense of Deputies By Group", x = "Grups", y = "Expenses in RS") + 
+          scale_y_continuous(labels = comma)+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+```
+
+<p>That's perfect! Now clear we have the average and seeing it is better to understand.</p>
+
+<p>So the grup that have the minimum average is PTdoB whit an expende of RS 22505.34 and 1 member so its average is RS 22505.34. And the one who has expended more is PEN, all expense get a total of RS 3572566.55, 3 member and a average of RS 1190855.52.</p>
+
+
+
+
+
+
