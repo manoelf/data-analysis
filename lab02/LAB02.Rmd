@@ -62,16 +62,24 @@ ggplot(d,aes(x = value)) +
 
 
 ```{r hist,warning=FALSE, message=FALSE}
-data2006$sexo = as.factor(data2006$sexo)
-data2006$estado_civil = as.factor(data2006$estado_civil)
+data2006$sexo <- as.factor(data2006$sexo)
+data2006$estado_civil <- as.factor(data2006$estado_civil)
 ```
 
 
 
 
 ```{r hist,warning=FALSE, message=FALSE}
-data2006$quantidades_doacoes = log(data2006$quantidade_doacoes)
-data2006$quantidade_doadores = log(data2006$quantidade_doadores)
-data2006$quantidade_despesas = log(data2006$quantidade_despesas)
+data2006$quantidades_doacoes <- log(data2006$quantidade_doacoes)
+data2006$quantidade_doadores <- log(data2006$quantidade_doadores)
+data2006$quantidade_despesas <- log(data2006$quantidade_despesas)
 
+```
+
+Multiple Regression Linear Model
+    + data2006$cargo 
+
+```{r hist,warning=FALSE, message=FALSE}
+
+summary(lm(data2006$votos ~ data2006$uf + data2006$partido  + data2006$quantidade_doacoes + data2006$quantidade_doadores + data2006$total_receita + data2006$media_receita + data2006$recursos_de_outros_candidatos.comites + data2006$recursos_de_pessoas_fisicas + data2006$recursos_de_pessoas_juridicas + data2006$recursos_proprios + data2006$recursos_de_partido_politico + data2006$quantidade_despesas + data2006$quantidade_fornecedores + data2006$total_despesa + data2006$media_despesa + data2006$sexo + data2006$grau + data2006$estado_civil + data2006$ocupacao))
 ```
