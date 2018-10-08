@@ -1,0 +1,104 @@
+---
+title: "Lab02"
+author: "Jose Manoel Ferreira"
+date: "1 de outubro de 2018"
+output: html_document
+---
+
+``` {r prepare, cache=TRUE, message=FALSE, warning=FALSE}
+
+  # campos:
+  # "sequencial_candidato" :(character) id do candidato
+  # "nome": (character)
+  # "uf": (character)
+  # "partido": (character)
+  # "quantidade_doacoes": (integer)
+  # "quantidade_doadores": (integer) número de doadores diferentes
+  # "total_receita": (double) soma em R$ das doações
+  # "media_receita": (double) média das doações
+  # "recursos_de_outros_candidatos/comites": (double) quantia em R$ das doações provenientes de outros candidatos ou comite partidário
+  # "recursos_de_pessoas_fisicas": (double) quantia em R$ das doações provenientes de outros CPFs
+  # "recursos_de_pessoas_juridicas": (double) quantia em R$ das doações provenientes de outros CNPJ
+  # "recursos_proprios": (double) quantia em R$ das doações provenientes do próprio candidato
+  # "recursos_de_partido_politico": (double) quantia em R$ das doações provenientes do partido político do candidato
+  # "votos": (integer) variável alvo. Se refere ao número de votos na campanha de 2006 e 2010
+  # "quantidade_despesas": (integer)
+  # "quantidade_fornecedores": (integer) número de fornecedores/despesas diferentes
+  # "total_despesa": (double) soma em R$ das despesas de campanha
+  # "media_despesa": (double) média das despesas de campanha
+  # "cargo": (character)
+  # "Sexo":  (character)
+  # "grau": (character) grau de instrução do candidato
+  # "estado_civil": (character)
+  # "ocupacao": (character) ocupação do candidato
+
+
+
+setwd("~/git/data-analysis/lab01-2/")
+
+
+
+
+data2006 <- read.csv(("data/eleicoes_2006.csv"))
+data2010 <- read.csv(("data/eleicoes_2010.csv"))
+
+
+library(reshape)
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(lattice)
+library(scales)
+library(corrplot)
+library("PerformanceAnalytics")
+```
+
+
+```{r hist,warning=FALSE, message=FALSE}
+d = melt(select(data2006, -sequencial_candidato))
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable, scales = "free_x") + 
+    scale_x_continuous(labels = comma) +
+    geom_histogram()
+```
+
+
+```{r hist,warning=FALSE, message=FALSE}
+data2006$sexo <- as.factor(data2006$sexo)
+data2006$estado_civil <- as.factor(data2006$estado_civil)
+data2006$uf <- as.factor(data2006$uf)
+data2006$sexo <- as.factor(data2006$sexo)
+data2006$grau <- as.factor(data2006$grau)
+data2006$estado_civil <- as.factor(data2006$estado_civil)
+data2006$ocupacao <- as.factor(data2006$ocupacao)
+
+```
+
+
+In order to normalize the vaiable log function was applaied in the variables quantidade_doacoes, quantidade_doadores, quantidade_despesas and votos.
+
+
+
+```{r hist,warning=FALSE, message=FALSE}
+d = melt(select(data2006, -sequencial_candidato, - ano))
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable, scales = "free_x") + 
+    scale_x_continuous(labels = comma) +
+    geom_histogram()
+```
+
+
+```{r hist,warning=FALSE, message=FALSE}
+res <- cor(data2006$votos, data2006$total_despesa, data2006$recursos_de_partido_politico, data2006$recursos_proprios)
+
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+
+```
+
+Multiple Regression Linear Model Whit all numeric variables
+    
+```{r hist,warning=FALSE, message=FALSE}
+
+summary(lm(data2006$votos ~ data2006$uf + data2006$partido  + data2006$quantidade_doacoes + data2006$quantidade_doadores + data2006$total_receita + data2006$media_receita + data2006$recursos_de_outros_candidatos.comites + data2006$recursos_de_pessoas_fisicas + data2006$recursos_de_pessoas_juridicas + data2006$recursos_proprios + data2006$recursos_de_partido_politico + data2006$quantidade_despesas + data2006$quantidade_fornecedores + data2006$total_despesa + data2006$media_despesa + data2006$sexo + data2006$grau + data2006$estado_civil + data2006$ocupacao))
+```
