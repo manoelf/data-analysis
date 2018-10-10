@@ -1,5 +1,5 @@
 ---
-title: "Lab02"
+title: "Using Linear Regression to Explain Deputies Votes"
 author: "Jose Manoel Ferreira"
 date: "1 de outubro de 2018"
 output: html_document
@@ -31,18 +31,33 @@ output: html_document
   # "grau": (character) grau de instrução do candidato
   # "estado_civil": (character)
   # "ocupacao": (character) ocupação do candidato
+```
 
-
-
+Setting up a workspace
+```{r ,warning=FALSE, message=FALSE}
 setwd("~/git/data-analysis/lab02/")
+```
 
+Building our dataframes
 
-
-
+```{r ,warning=FALSE, message=FALSE}
 data2006 <- read.csv(("data/eleicoes_2006.csv"))
 data2010 <- read.csv(("data/eleicoes_2010.csv"))
+data2006_2010 <-read.csv(("data/eleicoes_2006_e_2010.csv"))
 
+```
 
+Removing the NA
+
+```{r ,warning=FALSE, message=FALSE}
+data2006 <- na.omit(data2006)
+data2010 <- na.omit(data2010)
+data2006_2010 <- na.omit(data2006_2010)
+```
+
+Library used
+
+```{r ,warning=FALSE, message=FALSE}
 library(reshape)
 library(ggplot2)
 library(dplyr)
@@ -53,7 +68,10 @@ library("PerformanceAnalytics")
 library(GGally)
 ```
 
-```{r hist,warning=FALSE, message=FALSE}
+Converting some categoric variables to factor, basically it set up a specific number to each value.
+
+#### 2006
+```{r ,warning=FALSE, message=FALSE}
 data2006$sexo <- as.factor(data2006$sexo)
 data2006$estado_civil <- as.factor(data2006$estado_civil)
 data2006$uf <- as.factor(data2006$uf)
@@ -65,12 +83,36 @@ data2006$ocupacao <- as.factor(data2006$ocupacao)
 ```
 
 
-In order to normalize the vaiable log function was applaied in the variables quantidade_doacoes, quantidade_doadores, quantidade_despesas and votos.
+#### 2010
+```{r ,warning=FALSE, message=FALSE}
+data2010$sexo <- as.factor(data2010$sexo)
+data2010$estado_civil <- as.factor(data2010$estado_civil)
+data2010$uf <- as.factor(data2010$uf)
+data2010$sexo <- as.factor(data2010$sexo)
+data2010$grau <- as.factor(data2010$grau)
+data2010$estado_civil <- as.factor(data2010$estado_civil)
+data2010$ocupacao <- as.factor(data2010$ocupacao)
+
+```
 
 
+Bar charts to numeric variables
 
-```{r hist,warning=FALSE, message=FALSE}
+#### 2006
+
+```{r ,warning=FALSE, message=FALSE}
+
 d = melt(select(data2006, -sequencial_candidato, - ano))
+ggplot(d,aes(x = value)) + 
+    facet_wrap(~variable, scales = "free_x") + 
+    scale_x_continuous(labels = comma) +
+    geom_histogram()
+
+```
+
+#### 2010
+```{r ,warning=FALSE, message=FALSE}
+d = melt(select(data2010, -sequencial_candidato, - ano))
 ggplot(d,aes(x = value)) + 
     facet_wrap(~variable, scales = "free_x") + 
     scale_x_continuous(labels = comma) +
@@ -78,38 +120,77 @@ ggplot(d,aes(x = value)) +
 ```
 
 
-```{r hist,warning=FALSE, message=FALSE,}
+It's important to see the correlation between the variables, it will show to us the dependence between variables
 
-datacorrelation1 <- data2006 %>% select(-c(sequencial_candidato, nome, estado_civil, ano, cargo))
-
-
-```
-
-Seeing the correlation betweend the variables we can say that the variable whit the best correlation whit votos is total_despesa 0.658 flollowed by total_receita 0.635 whitch makes 
-totally sense, because the total_receita is the values used to pay the expense and its represented by total_despesas.
+#### 2006
 
 
+```{r ,warning=FALSE, message=FALSE, fig.height=15,fig.width=15}
+data2006.correlation1 <- data2006 %>% select(-c(sequencial_candidato, nome, estado_civil, ano, cargo))
 
-```{r hist,warning=FALSE, message=FALSE, fig.height=15,fig.width=15}
-datacorrelation <- datacorrelation1 %>%
+data2006.correlation <- data2006.correlation1  %>%
   mutate(uf = as.numeric(uf)) %>%
   mutate(partido = as.numeric(partido)) %>%
   mutate(sexo = as.numeric(sexo)) %>%
   mutate(grau = as.numeric(grau)) %>%
   mutate(ocupacao = as.numeric(ocupacao))
-  round(2)
+  
 
-ggpairs(datacorrelation, axisLabels = "none")
+ggpairs(data2006.correlation, axisLabels = "none")
+```
+
+Seeing the correlation betweend the variables we can say that the variable whit the best correlation whit votos is total_despesa 0.658 flollowed by total_receita 0.635 whitch makes 
+totally sense, because the total_receita is the values used to pay the expense and its represented by total_despesas.
+>
+  * Greater correation is whit:
+    > total_despesas corr: 0.658
+    > total_receita corr: 0.635
+> 
+  * Smaller correlation is whit:
+    > uf corr: - 0.0318
+    > partido: - 0.048
+
+
+
+#### 2010
+votos is our target variable, so let's take a look and the correlation between votos and other variables.
+>
+  * Greater correation is whit:
+  > total_despesas corr: 0.637
+  > total_receita  corr: 0.626
+> 
+  * Smaller correlation is whit:
+    > media_despesas corr:   0.0715
+    > uf             corr: - 0.0425
+  
+  
+  
+#### 2006 and 2010
+As we can see we've got a very similar result in both years, total_receita and total_despesa as the greater correlation and uf was the smalest.
+
+```{r ,warning=FALSE, message=FALSE, fig.height=15,fig.width=15}
+data2010.correlation1 <- data2010 %>% select(-c(sequencial_candidato, nome, estado_civil, ano, cargo))
+
+data2010.correlation <- data2010.correlation1  %>%
+  mutate(uf = as.numeric(uf)) %>%
+  mutate(partido = as.numeric(partido)) %>%
+  mutate(sexo = as.numeric(sexo)) %>%
+  mutate(grau = as.numeric(grau)) %>%
+  mutate(ocupacao = as.numeric(ocupacao))
+  
+
+ggpairs(data2010.correlation, axisLabels = "none")
 ```
 
 Multiple Regression Linear Model Whit all numeric variables
 
-1. A multiple regresson model whit all variables is able to explain the y variation (total of votos) in 2006 and 2010?
+### 1. A multiple regresson model whit all variables is able to explain the y variation (total of votos) in 2006 and 2010?
 
-As we can see we've got a $ R_a^2 $ and $ R^2 $ whit 0.5779 and  0.5488 respectively. As close to 1 is better to explain the model, but it seems not enough and even adjusting the R-squared we got a minimum increasing. So the model whit all variables does not weel explains the total of votos.
+#### 2006
+> As we can see we've got a $R_a^2$ and $R^2$ whit 0.5779 and  0.5488 respectively. As close to 1 is better to explain the model, but it seems not enough and even adjusting the R-squared we got a minimum increasing. So the model whit all variables does not weel explains the total of votos. Also there is too many categoric variables making an extense model being difficult to visualise.
 
-    
-```{r hist,warning=FALSE, message=FALSE}
+
+```{r ,warning=FALSE, message=FALSE}
 
 data2006.lm = lm(data2006$votos ~ data2006$uf + data2006$partido  + data2006$quantidade_doacoes + data2006$quantidade_doadores + data2006$total_receita + data2006$media_receita + data2006$recursos_de_outros_candidatos.comites + data2006$recursos_de_pessoas_fisicas + data2006$recursos_de_pessoas_juridicas + data2006$recursos_proprios + data2006$recursos_de_partido_politico + data2006$quantidade_despesas + data2006$quantidade_fornecedores + data2006$total_despesa + data2006$media_despesa + data2006$sexo + data2006$grau + data2006$estado_civil + data2006$ocupacao)
 
@@ -117,43 +198,110 @@ summary(data2006.lm)
 
 ```
 
-2. Compare as regressões construídas para 2006 e 2010. Quais as diferenças/semelhanças percebidas? Algumas sugestões:
-  1. Analise os plots de resíduos e verifique se há tendências nos erros para cada ano.
-  2. Quais variáveis conseguem explicar melhor o número de votos? Compare essas variáveis entre os modelos. Mesma coisa para as variáveis menos explicativas.
-  3. Compare os valores de R2 e RSE considerando as regressões para cada ano.
-  4. Inclua outros pontos de comparação que você ache interessante.
+#### 2010
 
+Not different of 2006 the model whit all variables is not good to explaing the variable votos R-square was 0.5405 and	Adjusted R-squared:  0.5129. And it is interesting to point out that adjusting the R-square it decrease the value.
 
+```{r ,warning=FALSE, message=FALSE}
+
+data2010.lm = lm(data2010$votos ~ data2010$uf + data2010$partido  + data2010$quantidade_doacoes + data2010$quantidade_doadores + data2010$total_receita + data2010$media_receita + data2010$recursos_de_outros_candidatos.comites + data2010$recursos_de_pessoas_fisicas + data2010$recursos_de_pessoas_juridicas + data2010$recursos_proprios + data2010$recursos_de_partido_politico + data2010$quantidade_despesas + data2010$quantidade_fornecedores + data2010$total_despesa + data2010$media_despesa + data2010$sexo + data2010$grau + data2010$estado_civil + data2010$ocupacao)
+
+summary(data2010.lm)
+
+```
+
+### 2. Compere the regressiond made to 2006 and 2010. Which are the difference/similarities noticed:
+
+> Looking to the residual charts we can notice that the greater amount is close to zero, it is good because there is not big difference between the new model results copared whit the original one. But the scale to residual chart of 2010 is greter then 2006 it means that had some errors whit a considerable value.
+> The variables has almost the same correlation value, it looks so same to both years.
+
+  
+
+#### 2006
 ```{r}
 data2006.residuals = resid(data2006.lm) 
 
 densityplot(data2006.residuals)
 ```
-3. Todas as variáveis são úteis para os modelos de regressão? Há variáveis redudantes? Faça análises para 2006 e 2010 separadamente. 
-3. Are all variables useful to the regression model? is there any redundant varialbe? Alaysis to 2006 and 2010 separately.
-No, not all variable are usefull to the model, for example cargo, there is only one cargo and year which is DEPUTADO FEDERAL and 2006 respectively. Also there is redudant variables, media_receita which is the mediam of all receita so it have a strong correlation whit total_receita, so it not necessary to have both variables in the model.
 
 
-4. No caso de haver variáveis pouco explicativas e/ou redudantes, construa um novo modelo sem essas variáveis e o compare ao modelo com todas as variáveis (e.g. em termos de R2 e RSE). Faça isso para 2006 e 2010 separadamente.
-4. If there is redudant variables or not explained, make a new model excluding those variables and compare the new model with the one that has all variables (e.g. should explain using R2 and RSE)
+#### 2010
+```{r}
+data2010.residuals = resid(data2010.lm) 
 
-5. Construa agora uma regressão considerando os anos 2006 e 2010 em conjunto. Que diferenças/semelhanças você percebe em relação aos modelos individuais por ano? Veja a questão 2 para sugestões que você usar para comparação.
+densityplot(data2010.residuals)
+```
+### 3. Are all variables useful to the regression model? is there any redundant varialbe? Alaysis to 2006 and 2010 separately.
 
-Uma das formas de avaliar a qualidade do ajuste do modelo é através do coeficiente de determinação. Basicamente, este coeficiente indica quanto o modelo foi capaz de explicar os dados coletados. O coeficiente de determinação é dado pela expressão.
-
-0 < $ R^2 $ < 1
-
-O $ R^2 $ é, portanto, uma medida descritiva da qualidade do ajuste obtido. Em geral referimo-nos ao $ R^2 $ como a quantidade de variabilidade nos dados que é explicada pelo modelo de regressão ajustado. Entretanto, o valor do coeficiente de determinação depende do número de observações $ (n) $, tendendo a crescer quando $ n $ diminui
-
-O $ R^2 $ deve ser usado com precaução, pois é sempre possível torná-lo maior pela adição de um número suficiente de termos ao modelo. Assim, se, por exemplo, não há dados repetidos (mais do que um valor $ y $ para um mesmo $ x $) um polinômio de grau $ (n - 1) $ dará um ajuste perfeito $ (R^2 = 1) $ para $ n $ dados. Quando há valores repetidos, o $ R^2 $ não será nunca igual a 1, pois o modelo não poderá explicar a variabilidade devido ao erro puro.
-
-Para evitar dificuldades na interpretação de $ R^2 $, alguns estatísticos preferem usar o $ R_a^2 $ ($ R^2 $ ajustado), definido para uma equação com 2 coeficientes como
+> No, not all variable are usefull to the model, for example cargo, there is only one cargo and year which is DEPUTADO FEDERAL and 2006 respectively. Also there is redudant variables, media_receita which is the mediam of all receita so it have a strong correlation whit total_receita, so it not necessary to have both variables in the model. Also we've some variables whit a strong correlation as quantidade_doacoes and quantidade_doadores whit 0.997 in both years; total_receita and total_despesas whit 0.99; total_receita and total_despesas whit  0.988, those variable together are not good to explain the model, so should chouse one of each variable strong correlated.
 
 
 
-$$R^2_a=1-\left(\frac{n-1}{n-2}\right)(1-R^2).$$	
-Assim como o Coeficiente de Determinação $ R^2 $, quanto maior $ R_a^2 $, mais a variável resposta é explicada pela regressora X.
+### 4. If there is redudant variables or not explained, make a new model excluding those variables and compare the new model with the one that has all variables (e.g. should explain using R2 and RSE)
 
 
-http://www.portalaction.com.br/analise-de-regressao/16-coeficiente-de-determinacao 
+> In order to reach a better model we've choose a few variables, numeric ones whit a good significance value, but the R-squared and adjusted got was smaller then the one whit all varialbes, also not a good regression model, not 2006 nor 2010.
+  *  2006: R-squared:  0.4896,	Adjusted R-squared:  0.4887 
+  *  2010: R-squared:  0.4232,	Adjusted R-squared:  0.4224 
+
+#### 2006
+```{r}
+data2006.lm2 = lm(data2006$votos ~ data2006$quantidade_doadores + data2006$total_receita + data2006$recursos_de_pessoas_fisicas + data2006$recursos_de_pessoas_juridicas + data2006$quantidade_despesas + data2006$total_despesa)
+
+summary(data2006.lm2)
+```
+#### 2010
+```{r}
+data2010.lm2 = lm(data2010$votos ~ data2010$quantidade_doadores + data2010$total_receita + data2010$recursos_de_pessoas_fisicas + data2010$recursos_de_pessoas_juridicas + data2010$quantidade_despesas + data2010$total_despesa)
+
+summary(data2010.lm2)
+```
+
+### 5. Make a regression including both years 2006 and 1010 together. Which differencies/similitaries are notices coparing whit the models whit individual year? 
+> Putting all year together and we notice that correlation does not change too much, and the year in all variables show a small correlation factor.
+> Almost same residual chart, but more close to 2010.
+> R-squared:  0.5082,	Adjusted R-squared:  0.4909 Was a few better then other year
+> Even reproducing the model whit fewer variables, removing the redundant ones whe still getting a R2 and RSE between 0.4 and 0.5
+
+
+```{r ,warning=FALSE, message=FALSE, fig.height=15,fig.width=15}
+data2006_2010.correlation1 <- data2006_2010 %>% select(-c(sequencial_candidato, nome, estado_civil, cargo))
+
+data2006_2010.correlation <- data2006_2010.correlation1  %>%
+  mutate(uf = as.numeric(uf)) %>%
+  mutate(partido = as.numeric(partido)) %>%
+  mutate(sexo = as.numeric(sexo)) %>%
+  mutate(grau = as.numeric(grau)) %>%
+  mutate(ocupacao = as.numeric(ocupacao))
+  
+
+ggpairs(data2006_2010.correlation, axisLabels = "none")
+```
+
+
+
+```{r ,warning=FALSE, message=FALSE}
+
+data2006_2010.lm = lm(data2006_2010$votos ~ data2006_2010$uf + data2006_2010$partido  + data2006_2010$quantidade_doacoes + data2006_2010$quantidade_doadores + data2006_2010$total_receita + data2006_2010$media_receita + data2006_2010$recursos_de_outros_candidatos.comites + data2006_2010$recursos_de_pessoas_fisicas + data2006_2010$recursos_de_pessoas_juridicas + data2006_2010$recursos_proprios + data2006_2010$recursos_de_partido_politico + data2006_2010$quantidade_despesas + data2006_2010$quantidade_fornecedores + data2006_2010$total_despesa + data2006_2010$media_despesa + data2006_2010$sexo + data2006_2010$grau + data2006_2010$estado_civil + data2006_2010$ocupacao + data2006_2010$ano)
+
+summary(data2006_2010.lm)
+
+```
+
+
+
+#### 2006 and 2010
+```{r}
+data2006_2010.residuals = resid(data2006_2010.lm) 
+
+densityplot(data2006_2010.residuals)
+```
+
+```{r ,warning=FALSE, message=FALSE}
+
+data2006_2010.lm = lm(data2006_2010$votos ~  data2006_2010$quantidade_doacoes + data2006_2010$total_receita + data2006_2010$recursos_de_outros_candidatos.comites + data2006_2010$recursos_de_pessoas_fisicas + data2006_2010$recursos_de_pessoas_juridicas + data2006_2010$recursos_proprios+ data2006_2010$quantidade_despesas + data2006_2010$total_despesa + data2006_2010$media_despesa +  data2006_2010$ano)
+
+summary(data2006_2010.lm)
+
+```
 
