@@ -24,60 +24,128 @@ Building our dataframes
 
 
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 test <- read.csv(("data/test.csv"))
 train <- read.csv(("data/train.csv"))
 ```
 
 Using the library carot
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 library(caret)
 library(dplyr)
 library(lars)
 library(ggplot2)
 ```
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 train <- train %>%
-  select(-cargo, -nome)
+  select(-cargo, -nome, -ocupacao)
 test <- test %>%
-  select(-cargo, -nome)
+  select(-cargo, -nome, -ocupacao)
 ```
 
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 train[is.na(train)] <- 0
 test[is.na(test)] <- 0
 ```
 
 # K-fold cross-validation
 Creating the models
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 fitControl <- trainControl(## 10-fold CV
-                           method = "cv", # boot", "boot632", "cv", "repeatedcv", "LOOCV", "LGOCV"
+                           method = "repeatedcv", # boot", "boot632", "cv", "repeatedcv", "LOOCV", "LGOCV"
                            number = 10,
                            ## repeated ten times
                            repeats = 10)
 
-model.cv <- train(votos ~ ., 
+```
+
+```{r ,warning=FALSE, message=FALSE}
+preProcess = c("center", "scale","nzv" )
+```
+
+```{r ,warning=FALSE, message=FALSE}
+model.lasso <- train(votos ~ ., 
                data = train,
                method = "lasso",
-               trControl = fitControl)
+               metric = "RMSE",
+               preProcess = preProcess,
+               trControl = fitControl,
+               tuneLength = 15)
 
-model.cv
+model.lasso
 ```
 
 
 ```{r}
-
-DF <- as.data.frame(unclass(DF))
-train <- as.data.frame(unclass(train))
-model <- train(votos ~ ., 
-               data = train,
-               method = "ridge") # pode ser 'lasso'
-
+test <- test %>% mutate(votos = 0)
 ```
 
 
 
+```{r}
+lasso_prediction <- predict(model.lasso,test)
+
+lasso_data <- data.frame(pred = lasso_prediction, obs = test$votos)
+
+lasso_cv<- round(defaultSummary(lasso_data),digits = 4)
+
+lasso_cv
+```
+
+
+```{r}
+lambda.grid <- expand.grid(lambda = seq(0, 2, by=0.1))
+```
+
+
+
+```{r ,warning=FALSE, message=FALSE}
+
+#train <- as.data.frame(unclass(train))
+model.ridge <- train(votos ~ ., 
+               data = train,
+               method = "ridge", # pode ser 'lasso'ldf
+               tuneGrid = lambda.grid,
+               metric = "RMSE",
+               trControl = fitControl)
+
+model.ridge
+
+```
+
+
+```{r}
+ridge_prediction <- predict(model.ridge,test)
+
+ridge_data <- data.frame(pred = ridge_prediction, obs = test$votos)
+
+ridge_cv <- round(defaultSummary(ridge_data),digits = 4)
+
+ridge_cv
+```
+
+
+
+```{r}
+model.knn <- train(votos ~ ., 
+               data = train,
+               trControl = fitControl,
+               method = "knn", # pode ser 'lasso'ldf
+               metric = "RMSE",
+               preProcess = preProcess)
+
+model.knn
+```
+
+```{r}
+knn_prediction <- predict(model.knn,test)
+
+knn_data <- data.frame(pred = knn_prediction, obs = test$votos)
+
+knn_cv <- round(defaultSummary(knn_data),digits = 4)
+
+knn_cv
+```
