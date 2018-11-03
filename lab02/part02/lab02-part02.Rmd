@@ -1,0 +1,83 @@
+---
+title: "Lab02-part2"
+author: "Jose Ferreira"
+date: "October 31, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Instalation
+
+```{r, eval=FALSE}
+#install.packages("caret")
+```
+
+Setting up a workspace
+```{r ,warning=FALSE, message=FALSE}
+setwd("~/git/data-analysis/lab02/part02/")
+```
+
+Building our dataframes
+
+
+
+```{r}
+test <- read.csv(("data/test.csv"))
+train <- read.csv(("data/train.csv"))
+```
+
+Using the library carot
+
+```{r}
+library(caret)
+library(dplyr)
+library(lars)
+library(ggplot2)
+```
+
+```{r}
+train <- train %>%
+  select(-cargo, -nome)
+test <- test %>%
+  select(-cargo, -nome)
+```
+
+
+```{r}
+train[is.na(train)] <- 0
+test[is.na(test)] <- 0
+```
+
+# K-fold cross-validation
+Creating the models
+```{r}
+fitControl <- trainControl(## 10-fold CV
+                           method = "cv", # boot", "boot632", "cv", "repeatedcv", "LOOCV", "LGOCV"
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+
+model.cv <- train(votos ~ ., 
+               data = train,
+               method = "lasso",
+               trControl = fitControl)
+
+model.cv
+```
+
+
+```{r}
+
+DF <- as.data.frame(unclass(DF))
+train <- as.data.frame(unclass(train))
+model <- train(votos ~ ., 
+               data = train,
+               method = "ridge") # pode ser 'lasso'
+
+```
+
+
+
