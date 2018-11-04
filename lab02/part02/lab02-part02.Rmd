@@ -46,6 +46,29 @@ test <- test %>%
 ```
 
 
+#TODO: Deveria trocar os NA por a média da coluna
+
+```{r}
+media_partidos <- mean(train$recursos_de_partido_politico, na.rm = TRUE)
+train$recursos_de_partidos[is.na(train$recursos_de_partido_politico)] <- media_partidos
+
+media_comites <- mean(train$recursos_de_outros_candidatos.comites, na.rm = TRUE)
+train$recursos_de_outros_candidatos.comites[is.na(train$recursos_de_outros_candidatos.comites)] <- media_comites
+
+media_proprios <- mean(train$recursos_proprios, na.rm = TRUE)
+train$recursos_proprios[is.na(train$recursos_proprios)] <- media_proprios
+
+
+media_fisicas <- mean(as.numeric(train$recursos_de_pessoas_fisicas), na.rm = TRUE)
+train$recursos_pessoas_fisicas[is.na(as.numeric(train$recursos_de_pessoas_fisicas))] <- media_fisicas
+
+media_juridicas <- mean(train$recursos_de_pessoas_juridicas, na.rm = TRUE)
+train$recursos_de_pessoas_juridicas[is.na(train$recursos_de_pessoas_juridicas)] <- media_juridicas
+
+```
+
+
+
 ```{r ,warning=FALSE, message=FALSE}
 train[is.na(train)] <- 0
 test[is.na(test)] <- 0
@@ -73,22 +96,19 @@ model.lasso <- train(votos ~ .,
                metric = "RMSE",
                preProcess = preProcess,
                trControl = fitControl,
+               na.action = na.exclude,
                tuneLength = 15)
 
 model.lasso
 ```
 
 
-```{r}
-test <- test %>% mutate(votos = 0)
-```
-
 
 
 ```{r}
-lasso_prediction <- predict(model.lasso,test)
+lasso_prediction <- predict(model.lasso,train)
 
-lasso_data <- data.frame(pred = lasso_prediction, obs = test$votos)
+lasso_data <- data.frame(pred = lasso_prediction, obs = train$votos)
 
 lasso_cv<- round(defaultSummary(lasso_data),digits = 4)
 
@@ -118,9 +138,9 @@ model.ridge
 
 
 ```{r}
-ridge_prediction <- predict(model.ridge,test)
+ridge_prediction <- predict(model.ridge,train)
 
-ridge_data <- data.frame(pred = ridge_prediction, obs = test$votos)
+ridge_data <- data.frame(pred = ridge_prediction, obs = train$votos)
 
 ridge_cv <- round(defaultSummary(ridge_data),digits = 4)
 
@@ -141,11 +161,83 @@ model.knn
 ```
 
 ```{r}
-knn_prediction <- predict(model.knn,test)
+knn_prediction <- predict(model.knn,train)
 
-knn_data <- data.frame(pred = knn_prediction, obs = test$votos)
+knn_data <- data.frame(pred = knn_prediction, obs = train$votos)
 
 knn_cv <- round(defaultSummary(knn_data),digits = 4)
 
 knn_cv
+```
+```{r}
+knn_data
+```
+
+```{r}
+plot(model.ridge, xlab = "Lambda", ylab = "RMSE")
+```
+
+```{r}
+plot(model.lasso, xlab = "Lambda", ylab = "RMSE")
+```
+
+```{r}
+plot(model.knn, ylab = "RMSE")
+```
+
+
+```{r}
+ggplot(varImp(model.ridge))
+```
+
+```{r}
+ggplot(varImp(model.lasso))
+```
+
+```{r}
+ggplot(varImp(model.knn))
+```
+
+
+```{r}
+newTrain <- train %>% select (-partido, -recursos_proprios,
+                           -recursos_de_outros_candidatos.comites)
+newTest <- test %>% select (-partido, -recursos_proprios,
+                           -recursos_de_outros_candidatos.comites)
+```
+
+```{r}
+grid <- expand.grid(k = model.lasso$bestTune)
+control <- trainControl(method = "optimism_boot")
+newModel.lasso <- train(votos ~ ., 
+               data = newTrain,
+               method = "lasso",
+               tuneGrid = grid,
+               trControl = control,
+               preProcess = preProcess)
+newModel.lasso 
+```
+
+```{r}
+ggplot(varImp(newModel.lasso))
+```
+
+```{r}
+newlasso_prediction <- predict(newModel.lasso)
+newLasso_data <- data.frame(pred = newlasso_prediction, obs = train$votos)
+new_lasso_cv <- round(defaultSummary(newLasso_data), digits = 4)
+new_lasso_cv
+```
+
+
+```{r eval = FALSE}
+newModel.lasso $xlevels[["ocupacao"]] <- union(newModel.lasso$xlevels[["ocupacao"]], levels(newTest$ocupacao))
+prediction_ <- predict(newModel.lasso , newTest)
+ID <- newTest %>%
+  select(sequencial_candidato)
+colnames(ID)[colnames(ID)=="sequencial_candidato"] <- "ID"
+predicted_file <- ID
+predicted_file$votos <- prediction_
+predicted_file$votos[predicted_file$votos < 0] <- 0
+write.csv(predicted_file, "sample_submission.csv", row.names=FALSE)
 ```
