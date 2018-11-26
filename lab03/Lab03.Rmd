@@ -1,0 +1,59 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("mlbench")
+install.packages("C50")
+install.packages("magrittr")
+```
+
+```{r}
+library(caret)
+library(mlbench)
+library(C50)
+library(dplyr)
+```
+
+
+Nessa atividade você irá usar seus conhecimentos sobre classificação para prever quais candidatos à Câmara de Deputados serão eleitos nas eleições de 2014. De forma específica faremos o seguinte:
+
+>> 1 Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso? (10 pt.)
+>> 2 Treine: um modelo de KNN, regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo.  (20 pts.)
+>> 3 Reporte precision, recall e f-measure no treino e validação. Há uma grande diferença de desempenho no treino/validação? Como você avalia os resultados? Justifique sua resposta. (10 pt.)
+>> 4 Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo? (20 pts.)
+>> 5 Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo: (20 pts.)
+>>>> 1 Experimente outros modelos (e.g. SVM, RandomForests e GradientBoosting).
+>>>> 2 Experimente balancear as classes,  caso estejam desbalanceadas.
+>>>> 3 Experimente outras estratégias de ensembles (e.g. Stacking)
+
+Os dados estão neste link: https://www.kaggle.com/c/ufcg-cdp-20182-lab3/data (Links para um site externo)Links para um site externo
+
+Para a entrega envie o link no RPubs e os arquivos .Rmd com o código em R. Para as respostas esperamos explicações textuais e visualizações para cada questão.
+
+Setting up workspace
+```{r}
+setwd("~/git/data-analysis/lab03/")
+```
+
+
+Loading DATA
+
+```{r}
+train = read.csv("data/all/train.csv")
+test = read.csv("data/all/test.csv")
+
+? table
+```
+
+
+
+```{r}
+data_class_destribution <- train %>% group_by(situacao) %>% summarize(class_count = n())
+print(head(data_class_destribution))
+```
+
+
+Usefull links:
+https://www.datascience.com/blog/imbalanced-data 
