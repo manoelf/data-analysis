@@ -23,11 +23,11 @@ output:
 <p>For our analisys we need the folowing packages to be installed.</p>
 
 ```{r}
-#install.packages("ggplot2")
-#install.packages("dplyr")
-#install.packages("tidyr")
-#install.packages("scales")
-#install.packages("plotly")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("scales")
+install.packages("plotly")
 ```
 
 <p>Once packages installed we load it.</p>

@@ -1,0 +1,280 @@
+---
+title: "Deputies Elections: votes Predictions"
+author: "Jose Manoel Ferreira"
+date: "November 07, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## Introduction
+
+This work is about to predict elections results based on previous data. So we'll build predictive models and the variable target is <b>votos<b>.
+
+P.S.: Elections for brazilam Deputies department (Câmera Federal de Deputados)
+
+
+Setting up a workspace
+
+```{r}
+setwd("~/git/data-analysis/lab02/part02/")
+```
+
+Building our dataframes
+
+>> We have a data for test which we'll will test our model and other data dedicated to train that model.
+
+```{r}
+test <- read.csv(("data/test.csv"))
+train <- read.csv(("data/train.csv"))
+```
+
+The needed libraries. 
+
+
+```{r ,warning=FALSE, message=FALSE}
+library(caret)
+library(dplyr)
+library(lars)
+library(ggplot2)
+```
+
+We choosed to remove those three categoric variables in order to run the model, otherwise it would take too much time. But for a better result you could let them on the data.
+
+```{r}
+train <- train %>%
+  select(-cargo, -nome, -ocupacao)
+test <- test %>%
+  select(-cargo, -nome, -ocupacao)
+```
+
+
+#TODO: Deveria trocar os NA por a média da coluna
+
+In the data would be better replace the NA for the column media, but we choosed replace by zero.
+
+
+```{r}
+train[is.na(train)] <- 0
+test[is.na(test)] <- 0
+```
+
+# K-fold cross-validation
+
+In order to tune our model we've used Cross-validation, basically it means search to the best values to improve our tests. There is some ways to use corss-validation which some are holdout, k-fold e leave-one-out
+
+fitControl
+>> Control the computational nuances of the train function.
+
+train
+>> This function sets up a grid of tuning parameters for a number of classification and regression routines, fits each model and calculates a resampling based performance measure.
+
+Refereces from Carret Documentation.
+
+
+```{r}
+fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv", # boot", "boot632", "cv", "repeatedcv", "LOOCV", "LGOCV"
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+
+```
+
+
+A string vector that defines a pre-processing of the predictor data.
+
+
+```{r}
+preProcess = c("center", "scale","nzv" )
+```
+
+###Creating the models
+
+
+# Lasso Model
+It's a method that analyse regression, execute a selection and variable regularization to increase the prediction precision, also is able to select variable to zero if necessary.
+
+```{r}
+model.lasso <- train(votos ~ ., 
+               data = train,
+               method = "lasso",
+               metric = "RMSE",
+               preProcess = preProcess,
+               trControl = fitControl,
+               na.action = na.exclude,
+               tuneLength = 15)
+
+model.lasso
+```
+
+
+The prediction for the trained model,  which <b>votos</b> is our target variable.
+
+```{r}
+lasso_prediction <- predict(model.lasso,train)
+
+lasso_data <- data.frame(pred = lasso_prediction, obs = train$votos)
+
+lasso_cv<- round(defaultSummary(lasso_data),digits = 4)
+
+lasso_cv
+```
+
+As suggested for the regression modelsm the parameter to be tuned is the lambda
+
+```{r}
+lambda.grid <- expand.grid(lambda = seq(0, 2, by=0.1))
+```
+
+# Ridge Model
+
+Is a method of regularization which the mean objective is soften the atribuites which has some interferences, so avoiding the overffiting.
+
+```{r}
+model.ridge <- train(votos ~ ., 
+               data = train,
+               method = "ridge", 
+               tuneGrid = lambda.grid,
+               metric = "RMSE",
+               trControl = fitControl, 
+               preProcess = preProcess)
+
+model.ridge
+
+```
+
+As result we've got a small lambda value meaning smal BIAS and HIGH variance.
+
+```{r}
+ridge_prediction <- predict(model.ridge,train)
+
+ridge_data <- data.frame(pred = ridge_prediction, obs = train$votos)
+
+ridge_cv <- round(defaultSummary(ridge_data),digits = 4)
+
+ridge_cv
+```
+
+# KNN Model
+
+k-nearest neighbour classification for test set from training set. For each row of the test set, the k nearest (in Euclidean distance) training set vectors are found, and the classification is decided by majority vote, with ties broken at random. If there are ties for the kth nearest vector, all candidates are included in the vote.
+
+```{r}
+model.knn <- train(votos ~ ., 
+               data = train,
+               trControl = fitControl,
+               method = "knn", # pode ser 'lasso'ldf
+               metric = "RMSE",
+               preProcess = preProcess)
+
+model.knn
+```
+
+```{r}
+knn_prediction <- predict(model.knn,train)
+
+knn_data <- data.frame(pred = knn_prediction, obs = train$votos)
+
+knn_cv <- round(defaultSummary(knn_data),digits = 4)
+
+knn_cv
+```
+
+# Models Comparison
+Let's see the performance for each model based on RMSE value. 
+
+#### RIDGE
+
+```{r}
+plot(model.ridge, xlab = "Lambda", ylab = "RMSE")
+```
+
+#### LASSO
+
+```{r}
+plot(model.lasso, xlab = "Lambda", ylab = "RMSE")
+```
+
+#### KNN
+
+```{r}
+plot(model.knn, ylab = "RMSE")
+```
+
+## Variables importances defined by the models
+
+We're going to see which variable are hilighted as importante for the models so the one not important either.
+
+
+#### RIDGE
+```{r}
+ggplot(varImp(model.ridge))
+```
+
+
+#### LASSO
+```{r}
+ggplot(varImp(model.lasso))
+```
+
+
+#### KNN
+```{r}
+ggplot(varImp(model.knn))
+```
+
+### RETRAIN
+As the Lasso model get best result for the sample used, now we gonna retraing the model removing the useless variables and change the parameter in order to improve the model
+
+```{r ,warning=FALSE, message=FALSE}
+newTrain <- train %>% select (-partido, -recursos_proprios,
+                           -recursos_de_outros_candidatos.comites, -uf, -ano, -media_despesa)
+newTest <- test %>% select (-partido, -recursos_proprios,
+                           -recursos_de_outros_candidatos.comites, -uf, -ano, -media_despesa)
+```
+
+```{r ,warning=FALSE, message=FALSE}
+grid <- expand.grid(k = model.lasso$bestTune)
+control <- trainControl(method = "optimism_boot")
+newModel.KNN <- train(votos ~ ., 
+               data = newTrain,
+               method = "knn",
+               tuneGrid = grid,
+               trControl = control,
+               preProcess = preProcess, 
+               tuneLength= 50)
+newModel.lasso 
+```
+
+```{r ,warning=FALSE, message=FALSE}
+ggplot(varImp(newModel.KNN))
+```
+
+### Kaggle challenge
+
+As propose in the activite we are going to use our improved model to submite the votos prediction to the challenge in Kaggle. 
+
+```{r ,warning=FALSE, message=FALSE}
+newKNN_prediction <- predict(newModel.KNN)
+newKNN_data <- data.frame(pred = newKNN_prediction, obs = train$votos)
+new_KNN_cv <- round(defaultSummary(newKNN_data), digits = 4)
+new_KNN_cv
+```
+
+
+```{r ,warning=FALSE, message=FALSE}
+newModel.KNN $xlevels[["ocupacao"]] <- union(newModel.KNN$xlevels[["ocupacao"]], levels(newTest$ocupacao))
+prediction_ <- predict(newModel.KNN , newTest)
+ID <- newTest %>%
+  select(sequencial_candidato)
+colnames(ID)[colnames(ID)=="sequencial_candidato"] <- "ID"
+predicted_file <- ID
+predicted_file$votos <- prediction_
+predicted_file$votos[predicted_file$votos < 0] <- 0
+write.csv(predicted_file, "sample_submission.csv", row.names=FALSE)
+```
+
