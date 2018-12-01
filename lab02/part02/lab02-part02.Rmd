@@ -51,9 +51,6 @@ test <- test %>%
   select(-cargo, -nome, -ocupacao)
 ```
 
-
-#TODO: Deveria trocar os NA por a média da coluna
-
 In the data would be better replace the NA for the column media, but we choosed replace by zero.
 
 
@@ -238,7 +235,7 @@ newTest <- test %>% select (-partido, -recursos_proprios,
 ```
 
 ```{r ,warning=FALSE, message=FALSE}
-grid <- expand.grid(k = model.lasso$bestTune)
+grid <- expand.grid(k = model.knn$bestTune)
 control <- trainControl(method = "optimism_boot")
 newModel.KNN <- train(votos ~ ., 
                data = newTrain,
@@ -247,7 +244,7 @@ newModel.KNN <- train(votos ~ .,
                trControl = control,
                preProcess = preProcess, 
                tuneLength= 50)
-newModel.lasso 
+newModel.KNN
 ```
 
 ```{r ,warning=FALSE, message=FALSE}
