@@ -1,0 +1,66 @@
+---
+title: "Árvores de Decisão"
+output: html_document
+---
+
+Carregando os dados e bibliotecas:
+
+```{r}
+library(caret)
+library(mlbench)
+library(C50)
+credit = read.csv("credit.csv")
+str(credit) #função que mostra a estrutura interna dos dados
+```
+
+Olhando quantidade de observações por nível dos atributos checking_balance e savings_balance:
+
+```{r}
+table(credit$checking_balance)
+table(credit$savings_balance)
+```
+
+Olhando a proporção de calotes:
+
+```{r}
+table(credit$default)
+```
+
+Criando partições de treino e teste com caret:
+
+```{r}
+train_idx = createDataPartition(y=credit$default, p=.9,list=FALSE)
+train = credit[train_idx,]
+test = credit[-train_idx,]
+names(train) = names(credit) #adicionando cabeçalho aos dados de treino e test
+names(test) = names(credit)
+```
+
+Testando as proporções de instâncias em cada classe no treino e teste:
+
+```{r}
+prop.table(table(train$default))
+prop.table(table(test$default))
+```
+
+Treinando o modelo.
+
+```{r}
+grid = expand.grid(.winnow=c(TRUE,FALSE),.trials=c(1,5,10,20,30,40,50,60,70,80,90,100),.model="tree")
+fitControl = trainControl(method="repeatedcv",number=10,repeats=10,returnResamp="all")
+labels = as.factor(train$default)
+model = train(x=train[-21],y=labels,tuneGrid=grid,trControl=fitControl,method="C5.0",verbose=FALSE)
+plot(model)
+```
+
+Avaliando modelo no teste
+
+```{r}
+test_labels = as.factor(test$default)
+predictions = predict(model,newdata=test)
+confusionMatrix(data = predictions, test_labels)
+
+```
+
+
+
