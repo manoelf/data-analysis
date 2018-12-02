@@ -7,6 +7,8 @@ output: html_notebook
 install.packages("mlbench")
 install.packages("C50")
 install.packages("magrittr")
+install.packages("ROSE")
+install.packages("rpart")
 ```
 
 ```{r}
@@ -14,6 +16,11 @@ library(caret)
 library(mlbench)
 library(C50)
 library(dplyr)
+library(plotly)
+library(caret)
+library(ROSE)
+library(rpart)
+library(GGally)
 ```
 
 
@@ -41,12 +48,55 @@ setwd("~/git/data-analysis/lab03/")
 Loading DATA
 
 ```{r}
-train = read.csv("data/all/train.csv")
-test = read.csv("data/all/test.csv")
-
-? table
+train <- read.csv("data/all/train.csv")
+test <- read.csv("data/all/test.csv")
 ```
 
+Correlation
+
+```{r}
+train.correlation1 <- train %>% select(-c(sequencial_candidato, nome, estado_civil, ano, cargo))
+train.correlation1$situacao <- as.factor(train.correlation1$situacao)
+train.correlation <- train.correlation1  %>%
+  mutate(situacao = as.factor(situacao)) %>%
+  mutate(uf = as.factor(uf)) %>%
+  mutate(partido = as.factor(partido)) %>%
+  mutate(sexo = as.factor(sexo)) %>%
+  mutate(grau = as.factor(grau)) %>%
+  mutate(ocupacao = as.factor(ocupacao))
+
+train.correlation %>% 
+  select(-partido,
+         -uf,-grau,-sexo) %>%
+  na.omit() %>%
+  ggcorr(palette = "RdBu",
+         color = "grey50",
+         label = TRUE, hjust = 1,
+         label_size = 3, size = 4,
+         nbreaks = 5, layout.exp = 7) +
+  ggtitle("Gráfico de correlação eleições 2006")
+```
+
+
+We choosed to remove those three categoric variables in order to run the model, otherwise it would take too much time. But for a better result you could let them on the data. And also remove those variable which have strong correlation
+
+```{r}
+train <- train %>%
+  select(-cargo, -nome, -ocupacao, -total_despesa, -total_receita, -sequencial_candidato )
+test <- test %>%
+  select(-cargo, -nome, -ocupacao, total_despesa, -total_receita, -sequencial_candidato)
+```
+
+In the data would be better replace the NA for the column media, but we choosed replace by zero.
+
+
+```{r}
+train[is.na(train)] <- 0
+test[is.na(test)] <- 0
+```
+
+
+As we can see we have a considerable unbalance 
 
 
 ```{r}
@@ -54,16 +104,96 @@ data_class_destribution <- train %>% group_by(situacao) %>% summarize(class_coun
 print(head(data_class_destribution))
 ```
 
-
-Usefull links:
-https://www.datascience.com/blog/imbalanced-data 
+Distribuition
 
 ```{r}
-library(ggplot2)
-scatterPlot <- ggplot(train,aes(total_receita, total_receita,  color=situacao)) + 
-  geom_point() + 
-  scale_color_manual(values = c('#999999','#E69F00')) + 
-  theme(legend.position=c(0,1), legend.justification=c(0,1))
-scatterPlot
+#check classes distribution
+prop.table(table(train$situacao))
 ```
+
+
+```{r}
+p <- plot_ly(data_class_destribution, x = ~situacao, y = ~class_count, type = 'bar',
+        marker = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'))) %>%
+  layout(title = "Class Balance",
+         xaxis = list(title = "Situation"),
+         yaxis = list(title = "Count"))
+p
+
+```
+FUTURE PLANS
+lets create a model and see how is goes whitout balance
+
+```{r}
+set.seed(42)
+index <- createDataPartition(train$situacao, p = 0.7, list = FALSE)
+train_data <- train[index, ]
+test_data  <- train[-index, ]
+
+
+treeimb <- rpart(situacao ~ ., data = train_data)
+pred.treeimb <- predict(treeimb, newdata = test_data)
+new_test <- test
+
+new_test <- transform(pred.treeimb, situacao = ifelse(eleito > nao_eleito, "eleito", "nao_eleito"))
+
+accuracy.meas(test_data$situacao, pred.treeimb[,2])
+```
+
+
+
+
+
+
+
+```{r}
+roc.curve(test_data$situacao, pred.treeimb[,2], plotit = F)
+```
+
+Lets balance it
+
+Now the data set is balanced. But, you see that we’ve lost significant information from the sample. Let’s do both undersampling and oversampling on this imbalanced data. This can be achieved using method = “both“. In this case, the minority class is oversampled with replacement and majority class is undersampled without replacement.
+```{r}
+data_balanced_both <- ovun.sample(situacao ~ ., data = train, method = "both", p=0.5,                             N=1000, seed = 1)$data
+table(data_balanced_both$situacao)
+```
+
+p refers to the probability of positive class in newly generated sample.
+
+The data generated from oversampling have expected amount of repeated observations. Data generated from undersampling is deprived of important information from the original data. This leads to inaccuracies in the resulting performance. To encounter these issues, ROSE helps us to generate data synthetically as well. The data generated using ROSE is considered to provide better estimate of original data.
+
+```{r}
+data.rose <- ROSE(situacao ~ ., data = train, seed = 1)$data
+table(data.rose$situacao)
+```
+
+
+>> 2 Treine: um modelo de KNN, regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo.  (20 pts.)
+
+#knn
+
+```{r}
+fitControl <- trainControl(method = "repeatedcv", 
+                           number = 10,
+                           repeats = 10)
+
+preProcess = c("center", "scale","nzv" )
+? train
+model.knn <- train(situacao ~ ., 
+               data = data.rose,
+               trControl = fitControl,
+               method = "knn", # pode ser 'lasso'ldf
+               metric = "Accuracy",
+               preProcess = preProcess)
+
+model.knn
+```
+
+
+usefull links:
+http://www.treselle.com/blog/handle-class-imbalance-data-with-r/
+https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/
+https://shiring.github.io/machine_learning/2017/04/02/unbalanced 
+
+
 
