@@ -52,7 +52,7 @@ and test.csv will be used to Caggle challenge.
 
 ```{r}
 data <- read.csv("data/all/train.csv")
-testcaggle <- read.csv("data/all/test.csv")
+test.kaggle <- read.csv("data/all/test.csv")
 ```
 
 Here we gonna see the correlation between the variables, then will se the ones which has a strong correlation and remove, because keep both would be redundant for our prediction model.
@@ -86,8 +86,8 @@ We choosed to remove those three categoric variables in order to run the model, 
 ```{r}
 data <- data %>%
   select(-cargo, -nome, -ocupacao, -sexo, -total_despesa, -total_receita, -sequencial_candidato )
-test <- test %>%
-  select(-cargo, -nome, -ocupacao, -sexo, total_despesa, -total_receita, -sequencial_candidato)
+test.kaggle <- test.kaggle %>%
+  select(-cargo, -nome, -ocupacao, total_despesa, -total_receita)
 ```
 
 In the data would be better replace the NA for the column media, but we choosed replace by zero.
@@ -95,7 +95,7 @@ In the data would be better replace the NA for the column media, but we choosed 
 
 ```{r}
 data[is.na(data)] <- 0
-test[is.na(test)] <- 0
+test.kaggle[is.na(test.kaggle)] <- 0
 ```
 
 As our target is to predict the variable *situacao* we need to see if our data is balanced, so what is the class distribution? 
@@ -358,23 +358,18 @@ As propose in the activite we are going to use our best model to submite the vot
 
 #TODO: It needs to be reviside 
 
-```{r ,warning=FALSE, message=FALSE}
-newKNN_prediction <- predict(newModel.KNN)
-newKNN_data <- data.frame(pred = newKNN_prediction, obs = train$votos)
-new_KNN_cv <- round(defaultSummary(newKNN_data), digits = 4)
-new_KNN_cv
-```
+
 
 
 ```{r ,warning=FALSE, message=FALSE}
-newModel.KNN $xlevels[["ocupacao"]] <- union(newModel.KNN$xlevels[["ocupacao"]], levels(newTest$ocupacao))
-prediction_ <- predict(newModel.KNN , newTest)
-ID <- newTest %>%
+model.logistic_reg $xlevels[["ocupacao"]] <- union(model.logistic_reg$xlevels[["ocupacao"]], levels(test.kaggle$ocupacao))
+prediction_ <- predict(model.logistic_reg , test.kaggle)
+ID <- test.kaggle %>%
   select(sequencial_candidato)
 colnames(ID)[colnames(ID)=="sequencial_candidato"] <- "ID"
 predicted_file <- ID
-predicted_file$votos <- prediction_
-predicted_file$votos[predicted_file$votos < 0] <- 0
+predicted_file$situacao <- prediction_
+predicted_file$situacao[predicted_file$situacao < 0] <- 0
 write.csv(predicted_file, "sample_submission.csv", row.names=FALSE)
 ```
 
