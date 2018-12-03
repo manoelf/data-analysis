@@ -85,9 +85,9 @@ We choosed to remove those three categoric variables in order to run the model, 
 
 ```{r}
 data <- data %>%
-  select(-cargo, -nome, -ocupacao, -total_despesa, -total_receita, -sequencial_candidato )
+  select(-cargo, -nome, -ocupacao, -sexo, -total_despesa, -total_receita, -sequencial_candidato )
 test <- test %>%
-  select(-cargo, -nome, -ocupacao, total_despesa, -total_receita, -sequencial_candidato)
+  select(-cargo, -nome, -ocupacao, -sexo, total_despesa, -total_receita, -sequencial_candidato)
 ```
 
 In the data would be better replace the NA for the column media, but we choosed replace by zero.
@@ -166,7 +166,7 @@ table(data.rose$situacao)
 ```
 YEAH!
 
-It looks pretty balanced. That is great, so we now gonna peform some models and avaliate its metrics.
+It looks pretty balanced now. That is great, so we now gonna peform some models and avaliate its metrics.
 
 Yes, we need to particionate our balanced data now, using the same schema before.
 
@@ -205,13 +205,10 @@ model.knn
 ```
 
 
-
-
-
 ```{r}
 knn_prediction <- predict(model.knn,test)
 
-knn_data <- data.frame(pred = knn_prediction, obs = train)
+knn_data <- data.frame(pred = knn_prediction, obs = test$situacao)
 
 knn_cv <- round(defaultSummary(knn_data),digits = 4)
 
@@ -239,7 +236,7 @@ model.logistic_reg
 ```{r}
 logistic_reg_prediction <- predict(model.logistic_reg,test)
 
-logistic_reg_data <- data.frame(pred = logistic_reg_prediction, obs = train$situacao)
+logistic_reg_data <- data.frame(pred = logistic_reg_prediction, obs = test$situacao)
 
 logistic_reg_cv <- round(defaultSummary(logistic_reg_data),digits = 4)
 
@@ -267,7 +264,7 @@ accuracy.meas(new_test_data$situacao, new_pred.treeimb[,2])
 
 ```{r}
 model.tree_dec <- train(situacao ~ .,
-                data= data.rose, 
+                data= train, 
                 method = "rpart",
                 trControl = fitControl,
                 cp=0.001,  
@@ -277,9 +274,9 @@ model.tree_dec
 ```
 
 ```{r}
-tree_prediction <- predict(model.tree_dec,train)
+tree_prediction <- predict(model.tree_dec,test)
 
-tree_data <- data.frame(pred = tree_prediction, obs = train$situacao)
+tree_data <- data.frame(pred = tree_prediction, obs = test$situacao)
 
 tree_cv <- round(defaultSummary(tree_data),digits = 4)
 
@@ -345,6 +342,12 @@ varImp(model.tree_dec)
 ```{r}
 varImp(model.adaboost)
 ```
+
+
+## Kaggle challenge
+As far we can see for *ano* and *sexo* we've a low outcome for importance, so those variables should be removed.
+
+
 
 As propose in the activite we are going to use our best model to submite the votos prediction to the challenge in Kaggle. 
 
