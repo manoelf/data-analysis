@@ -1,17 +1,29 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Election Prediction using knn, logistic regression, decision tree and adaboost as classifiers models"
+author: "Jose Manoel Ferreira"
+date: "December 03, 2018"
+output:
+  html_document:
+    df_print: paged
 ---
 
-```{r}
-install.packages("mlbench")
-install.packages("C50")
-install.packages("magrittr")
-install.packages("ROSE")
-install.packages("rpart")
-```
 
-```{r}
+#Introduction
+
+<h3> Senario orveview: It is about to predict deputies election given a dataset whit some variables and the target is *situacao* which means if the deputie was elected (eleito) or not (nao_eleito). For that propouse we gonna: </h3>
+
+>> Use four Classifier models
+
+>> Train all models
+
+>> Predict Results
+
+>> Analyse Predictions 
+
+>> Chosse the best model and predict for Kaggle Challenge https://www.kaggle.com/c/ufcg-cdp-20182-lab3/ 
+
+Needed Libraries 
+```{r ,warning=FALSE, message=FALSE}
 library(caret)
 library(mlbench)
 library(C50)
@@ -22,24 +34,10 @@ library(ROSE)
 library(rpart)
 library(GGally)
 ```
-#TODO: Needs to chech accuracy, precision and f-measure
 
-Nessa atividade você irá usar seus conhecimentos sobre classificação para prever quais candidatos à Câmara de Deputados serão eleitos nas eleições de 2014. De forma específica faremos o seguinte:
-
->> 1 Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso? (10 pt.)
->> 2 Treine: um modelo de KNN, regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo.  (20 pts.)
->> 3 Reporte precision, recall e f-measure no treino e validação. Há uma grande diferença de desempenho no treino/validação? Como você avalia os resultados? Justifique sua resposta. (10 pt.)
->> 4 Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo? (20 pts.)
->> 5 Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo: (20 pts.)
->>>> 1 Experimente outros modelos (e.g. SVM, RandomForests e GradientBoosting).
->>>> 2 Experimente balancear as classes,  caso estejam desbalanceadas.
->>>> 3 Experimente outras estratégias de ensembles (e.g. Stacking)
-
-Os dados estão neste link: https://www.kaggle.com/c/ufcg-cdp-20182-lab3/data (Links para um site externo)Links para um site externo
-
-Para a entrega envie o link no RPubs e os arquivos .Rmd com o código em R. Para as respostas esperamos explicações textuais e visualizações para cada questão.
 
 Setting up workspace
+
 ```{r}
 setwd("~/git/data-analysis/lab03/")
 ```
@@ -57,16 +55,16 @@ test.kaggle <- read.csv("data/all/test.csv")
 
 Here we gonna see the correlation between the variables, then will se the ones which has a strong correlation and remove, because keep both would be redundant for our prediction model.
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 data.correlation1 <- data %>% select(-c(sequencial_candidato, nome, estado_civil, ano, cargo))
 
 data.correlation <- data.correlation1  %>%
-  mutate(situacao = as.factor(situacao)) %>%
-  mutate(uf = as.factor(uf)) %>%
-  mutate(partido = as.factor(partido)) %>%
-  mutate(sexo = as.factor(sexo)) %>%
-  mutate(grau = as.factor(grau)) %>%
-  mutate(ocupacao = as.factor(ocupacao))
+  mutate(situacao = as.numeric(situacao)) %>%
+  mutate(uf = as.numeric(uf)) %>%
+  mutate(partido = as.numeric(partido)) %>%
+  mutate(sexo = as.numeric(sexo)) %>%
+  mutate(grau = as.numeric(grau)) %>%
+  mutate(ocupacao = as.numeric(ocupacao))
 
 data.correlation %>% 
   select(-partido,
@@ -77,13 +75,13 @@ data.correlation %>%
          label = TRUE, hjust = 1,
          label_size = 3, size = 4,
          nbreaks = 5, layout.exp = 7) +
-  ggtitle("Gráfico de correlação eleições 2006")
+  ggtitle("Correlation Between Variables")
 ```
 
 
 We choosed to remove those three categoric variables in order to run the model, otherwise it would take too much time. But for a better result you could let them on the data. And also remove those variable which have strong correlation
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 data <- data %>%
   select(-cargo, -nome, -ocupacao, -sexo, -total_despesa, -total_receita, -sequencial_candidato )
 test.kaggle <- test.kaggle %>%
@@ -111,28 +109,28 @@ p <- plot_ly(data_class_destribution, x = ~situacao, y = ~class_count, type = 'b
 p
 ```
 
-cleary unbalanced!
-So what should we do? We gonna balance it.
-There is some ways to balance data which are:
->> 1. Undersampling
+<p>cleary unbalanced!</p>
+<p>So what should we do? We gonna balance it.</p>
+<p>There is some ways to balance data which are:</p>
+
+ >> 1. Undersampling:
 That method reduces the number of observation from the majoritary class in order to balance the data set.
->> 2. Oversampling
+
+>> 2. Oversampling:
 This method increase the number of observation from the minoritary class and make it balanced.
+
 >> 3. Both Sampling
 Here it uses the technique 1 and 2 to make the data set balanced 
->> 4. ROSE Sampling
+
+>> 4. ROSE Sampling:
 Data synthetic generation and it provades a better stimation of original data.
-
-
 
 
 Before balance it we gonna do a experiment. Let's create a model and see how is goes whitout balance in order to predict and see accuracy to compare in the future
 
-
-
 For tu build our models we gonna need data to train and test so we'll divid the original data into train and test, 70% to raing and 30% to test.
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 set.seed(42)
 index <- createDataPartition(data$situacao, p = 0.7, list = FALSE)
 unbalanced.train <- data[index, ]
@@ -142,31 +140,101 @@ unbalanced.test <- data[-index, ]
 
 Decision Tree whit unbalanced data
 
-```{r}
+```{r ,warning=FALSE, message=FALSE}
 
 treeimb <- rpart(situacao ~ ., data = unbalanced.train)
 pred.treeimb <- predict(treeimb, newdata = unbalanced.test)
 
-accuracy.meas(unbalanced.test$situacao, pred.treeimb[,2])
-```
-```{r}
-roc.curve(unbalanced.test$situacao, pred.treeimb[,2], plotit = F)
+metrics_unbalanced <- accuracy.meas(unbalanced.test$situacao, pred.treeimb[,2])
 ```
 
 Surprisely we've got a good precision and recall. Anyways let's see how it goes whit balabced data.
 
-
-
-Lets balance it, all data by using the 4 method ROSE Sampling which it gonna generate syntetich data.
-
+Waht is test distribution?
 
 ```{r}
+data_class_destribution <- unbalanced.test %>% group_by(situacao) %>% summarize(class_count = n())
+p_test <- plot_ly(data_class_destribution, x = ~situacao, y = ~class_count, type = 'bar',
+        marker = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'))) %>%
+  layout(title = "Class Balance",
+         xaxis = list(title = "Situation"),
+         yaxis = list(title = "Count"))
+p_test
+```
+
+Lets balance it, all data by using the 4th method ROSE Sampling which it gonna generate syntetich data.
+
+
+```{r ,warning=FALSE, message=FALSE}
 data.rose <- ROSE(situacao ~ ., data = data, seed = 1)$data
 table(data.rose$situacao)
 ```
 YEAH!
 
 It looks pretty balanced now. That is great, so we now gonna peform some models and avaliate its metrics.
+
+
+
+
+```{r}
+new_index <- createDataPartition(data.rose$situacao, p = 0.7, list = FALSE)
+new_train_data <- data.rose[index, ]
+new_test_data  <- data.rose[-index, ]
+
+
+
+```
+
+```{r}
+data_class_destribution <- new_test_data %>% group_by(situacao) %>% summarize(class_count = n())
+p_test_bl <- plot_ly(data_class_destribution, x = ~situacao, y = ~class_count, type = 'bar',
+        marker = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'))) %>%
+  layout(title = "Class Balance",
+         xaxis = list(title = "Situation"),
+         yaxis = list(title = "Count"))
+p_test_bl
+```
+
+
+Using the simple tree model to compare the results.
+
+```{r}
+new_treeimb <- rpart(situacao ~ ., data = new_train_data)
+new_pred.treeimb <- predict(new_treeimb, newdata = new_test_data)
+
+
+metrics_balanced <- accuracy.meas(new_test_data$situacao, new_pred.treeimb[,2])
+```
+
+So which are the precision for the tree model whith balanced data and unbalanced data?
+
+
+Acuracioa: acertar
+precisão: acertar sabendo
+
+```{r}
+dat <- data.frame(
+    model = factor(c("Balanced","Unbalanced"), levels=c("Balanced","Unbalanced")),
+    precision = c(metrics_balanced$precision, metrics_unbalanced$precision)
+)
+
+pl <- ggplot(data=dat, aes(x=model, y=precision, fill=model)) +
+    geom_bar(colour="black", stat="identity") +
+    guides(fill=FALSE)
+
+pl <- ggplotly(pl)
+
+pl
+```
+It seems that unbalanced is better, but it could be because the model trained got lucky, for that reason let's see how that models goes predicting data for balanced test.
+
+```{r}
+pred.treeimb_test <- predict(treeimb, newdata = new_test_data)
+accuracy.meas(new_test_data$situacao, pred.treeimb_test[,2])
+```
+Unfortunately not that good. It was because the model had learned whit a unbalanced data which has a small observation as *eleito* and influenciated in the results.
+
+
 
 Yes, we need to particionate our balanced data now, using the same schema before.
 
@@ -176,8 +244,6 @@ index <- createDataPartition(data.rose$situacao, p = 0.7, list = FALSE)
 train <- data.rose[index, ]
 test <- data.rose[-index, ]
 ```
-
->> 2 Treine: um modelo de KNN, regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo.  (20 pts.)
 
 #knn
 First model is Knn.
@@ -291,9 +357,11 @@ Boosting is an ensemble technique that attempts to create a strong classifier fr
 ```{r}
 
 
-model.adaboost <- train(situacao ~ media_receita + media_despesa, 
+model.adaboost <- train(situacao ~ ., 
                data = data.rose,
-               trControl = fitControl,
+               trControl = trainControl(method = "repeatedcv", 
+                           number = 10,
+                           repeats = 5),
                method = 'adaboost', 
                metric = "Accuracy",
                preProcess = preProcess)
@@ -305,19 +373,78 @@ model.adaboost
 
 
 ```{r}
-adaboost_prediction <- predict(model.logistic_reg,train)
+adaboost_prediction <- predict(model.adaboost,test)
 
-adaboost_data <- data.frame(pred = logistic_reg_prediction, obs = train$situacao)
+adaboost_data <- data.frame(pred = adaboost_prediction, obs = test$situacao)
 
-adaboost_cv <- round(defaultSummary(logistic_reg_data),digits = 4)
+adaboost_cv <- round(defaultSummary(adaboost_data),digits = 4)
 
 adaboost_cv
 
 ```
 
-##Which atribuite are most important to each model
+## Talking about metrics let's see Accuracy, Precision and F measure for each model
 
->> 4 Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo? (20 pts.)
+
+This method calculates the true positive, true negative, false positive and false negative. Then it will calculate the precision, recall and f measure.
+```{r}
+measurePrecisionRecall <- function(model_data){
+
+  true_pos <- model_data %>%
+    filter(obs == "eleito", pred == "eleito") %>% 
+    nrow()
+  true_neg <- model_data %>% 
+    filter(obs == "nao_eleito" , pred == "nao_eleito" ) %>% 
+    nrow()
+  false_pos <- model_data %>% 
+    filter(obs == "nao_eleito" , pred == "eleito") %>% 
+    nrow()
+  false_neg <- model_data %>% 
+    filter(obs == "eleito", pred == "nao_eleito" ) %>% 
+    nrow()
+  
+  precision <- true_pos / (true_pos + false_pos)
+  recall <- true_pos / (true_pos + false_neg)
+  fmeasure <- 2*(recall*precision)/(recall+precision)
+
+  metrics <- list('precision' = precision, 'recall' = recall, 'fmeasure' = fmeasure)
+  
+  
+  return(metrics)
+}
+
+```
+
+```{r}
+metrics.knn <- measurePrecisionRecall(knn_data)
+metrics.logistic_reg <- measurePrecisionRecall(logistic_reg_data)
+metrics.tree_dec <- measurePrecisionRecall(tree_data)
+metrics.adaboost <- measurePrecisionRecall(adaboost_data)
+
+
+```
+
+Now, in the chart we see that the classifier Adaboos got excelent result, but it makes us questionate if there is no overfitting, probably. As well there is the metrics for other models, the second best was Logistic Regression followed by Tree Decision and then KNN.
+```{r}
+dat2 <- data.frame(
+    model = factor(c("KNN", "KNN", "KNN", "Logic Regression", "Logic Regression", "Logic Regression", "Tree Decision", "Tree Decision", "Tree Decision", "Adabost", "Adabost", "Adabost")),
+    metric = factor(c("Precision", "Recall", "F Measure", "Precision", "Recall", "F Measure", "Precision", "Recall", "F Measure", "Precision", "Recall", "F Measure")), levels=c("Precision", "Recall", "F Measure"),
+    value = c(metrics.knn$precision, metrics.knn$recall, metrics.knn$fmeasure, metrics.logistic_reg$precision, metrics.logistic_reg$recall, metrics.logistic_reg$fmeasure, metrics.tree_dec$precision,  metrics.tree_dec$recall, metrics.tree_dec$fmeasure, metrics.adaboost$precision, metrics.adaboost$recall, metrics.adaboost$fmeasure)
+)
+
+p2 <- ggplot(data=dat2, aes(x=model, y=value, fill=metric)) +
+    geom_bar(stat="identity", position=position_dodge(), colour="black") +
+    scale_fill_manual(values=c("#999999", "#E69F00", "#7BCE94"))
+
+p2 <- ggplotly(p2)
+
+p2
+```
+
+
+##Which atribuite are most important to each model
+As far we can see for *ano* and *sexo* we've a low outcome for importance, so those variables should be removed. As well the best variables pointe for all model are *recursos_de_pessoas_juridicas*, *recursos_de_pessoas_fisicas* and the other differ in the order.
+
 
 ###KNN
 ```{r}
@@ -347,41 +474,27 @@ varImp(model.adaboost)
 ## Kaggle challenge
 As far we can see for *ano* and *sexo* we've a low outcome for importance, so those variables should be removed.
 
-
-
 As propose in the activite we are going to use our best model to submite the votos prediction to the challenge in Kaggle. 
 
->> 5 Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo: (20 pts.)
->>>> 1 Experimente outros modelos (e.g. SVM, RandomForests e GradientBoosting).
->>>> 2 Experimente balancear as classes,  caso estejam desbalanceadas.
->>>> 3 Experimente outras estratégias de ensembles (e.g. Stacking)
-
-#TODO: It needs to be reviside 
-
-
-
-
 ```{r ,warning=FALSE, message=FALSE}
-model.logistic_reg $xlevels[["ocupacao"]] <- union(model.logistic_reg$xlevels[["ocupacao"]], levels(test.kaggle$ocupacao))
-prediction_ <- predict(model.logistic_reg , test.kaggle)
+model.adaboost $xlevels[["ocupacao"]] <- union(model.adaboost$xlevels[["ocupacao"]], levels(test.kaggle$ocupacao))
+prediction_ <- predict(model.adaboost , test.kaggle)
 ID <- test.kaggle %>%
   select(sequencial_candidato)
 colnames(ID)[colnames(ID)=="sequencial_candidato"] <- "ID"
 predicted_file <- ID
-predicted_file$situacao <- prediction_
-predicted_file$situacao[predicted_file$situacao < 0] <- 0
+predicted_file$Predicted <- prediction_
 write.csv(predicted_file, "sample_submission.csv", row.names=FALSE)
 ```
 
 
 
-
-
-
-
 usefull links:
+
 http://www.treselle.com/blog/handle-class-imbalance-data-with-r/
+
 https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/
+
 https://shiring.github.io/machine_learning/2017/04/02/unbalanced 
 
 
